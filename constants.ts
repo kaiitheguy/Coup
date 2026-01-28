@@ -1,4 +1,4 @@
-import { I18nSchema, Role, ActionType } from './types';
+import { I18nSchema, Role, ActionType, Language } from './types';
 
 export const INITIAL_COINS = 2;
 export const MAX_PLAYERS = 6;
@@ -12,7 +12,7 @@ export const ROLES_DECK = [
   Role.CONTESSA, Role.CONTESSA, Role.CONTESSA
 ];
 
-export const I18N: Record<string, I18nSchema> = {
+export const I18N: Record<Language, I18nSchema> = {
   en: {
     lobby: {
       title: "COUP WEB",

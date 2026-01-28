@@ -22,12 +22,16 @@ export interface SocketEvents {
   // Client -> Server
   'room:create': (data: { name: string }) => void;
   'room:join': (data: { roomCode: string; name: string }) => void;
+  'room:reconnect': (data: { roomCode: string; playerId: string; name: string }) => void;
   'room:start': (data: { roomCode: string; playerId: string }) => void;
+  'room:leave': (data: { roomCode: string; playerId: string }) => void;
   'game:update': (data: { roomCode: string; gameState: Record<string, unknown> }) => void;
+  'game:restart': (data: { roomCode: string; playerId: string; gameState: Record<string, unknown> }) => void;
 
   // Server -> Client
   'room:created': (data: { roomCode: string; playerId: string; roomState: RoomState }) => void;
   'room:joined': (data: { roomCode: string; playerId: string; roomState: RoomState }) => void;
+  'room:reconnected': (data: { roomState: RoomState; gameState?: Record<string, unknown> }) => void;
   'room:state': (data: { roomState: RoomState }) => void;
   'game:state': (data: { gameState: Record<string, unknown> }) => void;
   'error': (data: { message: string }) => void;

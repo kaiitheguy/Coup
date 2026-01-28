@@ -7,6 +7,12 @@ Install dependencies:
 npm install
 ```
 
+## Environment variables
+
+- Create a **`.env`** file in the **project root** (copy from `.env.example`).
+- Set **`VITE_SERVER_URL`** to your server URL, e.g. `http://localhost:3001` (local) or `https://coup-amlw.onrender.com` (production).
+- **Important:** Vite reads env vars when the dev server **starts**. After changing `.env`, you must **restart** `npm run dev` for the new value to take effect.
+
 ## Running the Application
 
 ### Option 1: Run Server and Client Separately

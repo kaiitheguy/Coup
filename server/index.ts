@@ -54,6 +54,9 @@ type GameStatePayload = Record<string, unknown>;
 // In-memory game state per room (optional cache; clients are source of truth per update)
 const gameStates = new Map<string, GameStatePayload>();
 
+// Map socket.id -> { roomCode, playerId } so disconnect can mark the right player
+const socketToPlayer = new Map<string, { roomCode: string; playerId: string }>();
+
 // Helper: Broadcast room state to all clients in a room
 async function broadcastRoomState(roomCode: string) {
   const room = rooms.get(roomCode);
@@ -116,6 +119,7 @@ io.on('connection', (socket) => {
 
     rooms.set(roomCode, room);
     socket.join(roomCode);
+    socketToPlayer.set(socket.id, { roomCode, playerId });
 
     socket.emit('room:created', {
       roomCode,
@@ -141,6 +145,7 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // New players cannot join a started game; only reconnects (room:reconnect) can re-enter
     if (room.status === 'in_game') {
       socket.emit('error', { message: 'Game already started' });
       return;
@@ -151,11 +156,12 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Check if player already exists (reconnection)
+    // Check if player already exists (reconnection by name match - only in waiting rooms)
     let player = room.players.find(p => p.name === name.trim());
     if (player) {
       player.connected = true;
       socket.join(roomCode);
+      socketToPlayer.set(socket.id, { roomCode, playerId: player.id });
       socket.emit('room:joined', {
         roomCode,
         playerId: player.id,
@@ -177,6 +183,7 @@ io.on('connection', (socket) => {
 
     room.players.push(newPlayer);
     socket.join(roomCode);
+    socketToPlayer.set(socket.id, { roomCode, playerId });
 
     socket.emit('room:joined', {
       roomCode,
@@ -186,6 +193,43 @@ io.on('connection', (socket) => {
 
     broadcastRoomState(roomCode);
     console.log(`Player joined: ${name} to room ${roomCode}`);
+  });
+
+  // Reconnect: same player re-joining after refresh; can re-enter started game
+  socket.on('room:reconnect', (data: { roomCode: string; playerId: string; name: string }) => {
+    const { roomCode, playerId, name } = data;
+    const room = rooms.get(roomCode);
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+
+    let player = room.players.find(p => p.id === playerId);
+    if (!player && name?.trim()) {
+      // Optional: rebind by name if exactly one disconnected player matches
+      const byName = room.players.filter(p => !p.connected && p.name === name.trim());
+      if (byName.length === 1) {
+        player = byName[0];
+        console.log(`Reconnect: rebinding by name to existing player ${player.id} in ${roomCode}`);
+      }
+    }
+
+    if (!player) {
+      socket.emit('error', { message: 'Player not found in room' });
+      return;
+    }
+
+    player.connected = true;
+    socket.join(roomCode);
+    socketToPlayer.set(socket.id, { roomCode, playerId: player.id });
+
+    const payload: { roomState: RoomState; gameState?: GameStatePayload } = { roomState: room };
+    if (room.status === 'in_game') {
+      const gameState = gameStates.get(roomCode);
+      if (gameState) payload.gameState = gameState;
+    }
+    socket.emit('room:reconnected', payload);
+    console.log(`Player reconnected: ${player.name} (${player.id}) to room ${roomCode}`);
   });
 
   // Start room
@@ -226,25 +270,72 @@ io.on('connection', (socket) => {
     broadcastGameState(roomCode, gameState);
   });
 
+  // Restart game (host only): validate host, broadcast fresh game to entire room, then room state
+  socket.on('game:restart', async (data: { roomCode: string; playerId: string; gameState: GameStatePayload }) => {
+    const { roomCode, playerId, gameState } = data;
+    const room = rooms.get(roomCode);
+    if (!room) {
+      socket.emit('error', { message: 'Room not found' });
+      return;
+    }
+    if (room.hostId !== playerId) {
+      socket.emit('error', { message: 'Only host can restart the game' });
+      return;
+    }
+    const sockets = await io.in(roomCode).fetchSockets();
+    console.log(`broadcast restart to room ${roomCode}, sockets count = ${sockets.length}`);
+
+    // Broadcast new game state to entire room (all clients, including host)
+    gameStates.set(roomCode, gameState);
+    io.to(roomCode).emit('game:state', { gameState });
+
+    // Keep room in sync (status remains 'in_game')
+    io.to(roomCode).emit('room:state', { roomState: room });
+
+    console.log(`Game restarted in room ${roomCode}`);
+  });
+
+  // Leave room: mark disconnected, socket.leave; reassign host if waiting
+  socket.on('room:leave', (data: { roomCode: string; playerId: string }) => {
+    const { roomCode, playerId } = data;
+    const room = rooms.get(roomCode);
+    if (!room) return;
+
+    const player = room.players.find(p => p.id === playerId);
+    if (player) {
+      player.connected = false;
+      socket.leave(roomCode);
+      socketToPlayer.delete(socket.id);
+      if (room.status === 'waiting' && room.hostId === player.id) {
+        reassignHostIfNeeded(roomCode);
+      } else {
+        broadcastRoomState(roomCode);
+      }
+      console.log(`Player left: ${player.name} from room ${roomCode}`);
+    }
+  });
+
   // Handle disconnect
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
+    const mapping = socketToPlayer.get(socket.id);
+    socketToPlayer.delete(socket.id);
+    if (!mapping) return;
 
-    // Find and mark player as disconnected
-    for (const [roomCode, room] of rooms.entries()) {
-      const player = room.players.find(p => socket.rooms.has(roomCode));
-      if (player) {
-        player.connected = false;
-        console.log(`Player disconnected: ${player.name} from room ${roomCode}`);
-        
-        // Reassign host if needed
-        if (room.status === 'waiting' && room.hostId === player.id) {
-          reassignHostIfNeeded(roomCode);
-        }
-        
-        broadcastRoomState(roomCode);
-        break;
+    const { roomCode, playerId } = mapping;
+    const room = rooms.get(roomCode);
+    if (!room) return;
+
+    const player = room.players.find(p => p.id === playerId);
+    if (player) {
+      player.connected = false;
+      console.log(`Player disconnected: ${player.name} from room ${roomCode}`);
+
+      if (room.status === 'waiting' && room.hostId === player.id) {
+        reassignHostIfNeeded(roomCode);
       }
+
+      broadcastRoomState(roomCode);
     }
   });
 });

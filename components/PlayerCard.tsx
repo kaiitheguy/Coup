@@ -1,6 +1,7 @@
 import React from 'react';
-import { Player, Role, Language } from '../types';
+import { Player, Language } from '../types';
 import { I18N } from '../constants';
+import { RoleChip } from '../constants/roleMeta';
 import { User, Coins, Skull } from 'lucide-react';
 
 interface PlayerCardProps {
@@ -8,9 +9,20 @@ interface PlayerCardProps {
   isMe: boolean;
   isCurrentTurn: boolean;
   lang: Language;
+  isTargetSelectable?: boolean;
+  isTargetSelected?: boolean;
+  onTargetClick?: () => void;
 }
 
-export const PlayerCard: React.FC<PlayerCardProps> = ({ player, isMe, isCurrentTurn, lang }) => {
+export const PlayerCard: React.FC<PlayerCardProps> = ({
+  player,
+  isMe,
+  isCurrentTurn,
+  lang,
+  isTargetSelectable,
+  isTargetSelected,
+  onTargetClick,
+}) => {
   if (!player.isAlive) {
     return (
       <div className="flex items-center p-3 rounded-lg bg-gray-100 border border-gray-200 opacity-60">
@@ -20,18 +32,30 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, isMe, isCurrentT
     );
   }
 
+  const t = I18N[lang];
+  const isClickable = isTargetSelectable && onTargetClick;
+
   return (
-    <div className={`
-      relative p-4 rounded-xl border-2 transition-all
-      ${isCurrentTurn ? 'border-slate-800 bg-white shadow-lg scale-[1.02]' : 'border-transparent bg-white shadow-sm'}
-    `}>
+    <div
+      role={isClickable ? 'button' : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      onClick={isClickable ? onTargetClick : undefined}
+      onKeyDown={isClickable ? (e) => e.key === 'Enter' && onTargetClick?.() : undefined}
+      className={`
+        relative p-4 rounded-xl border-2 transition-all
+        ${isCurrentTurn ? 'border-slate-800 bg-white shadow-lg scale-[1.02]' : 'border-transparent bg-white shadow-sm'}
+        ${isTargetSelectable ? 'cursor-pointer hover:border-slate-400 hover:shadow-md' : ''}
+        ${isTargetSelected ? 'ring-2 ring-indigo-500 ring-offset-2 border-indigo-400' : ''}
+        ${isTargetSelectable && !isTargetSelected ? 'border-dashed border-slate-300' : ''}
+      `}
+    >
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-2">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isMe ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-700'}`}>
             <User size={18} />
           </div>
           <span className="font-bold text-slate-900">
-            {player.name} {isMe && <span className="text-xs bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded ml-1">{I18N[lang].game.you}</span>}
+            {player.name} {isMe && <span className="text-xs bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded ml-1">{t.game.you}</span>}
           </span>
         </div>
         <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-full border border-yellow-100 text-yellow-700">
@@ -40,24 +64,22 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({ player, isMe, isCurrentT
         </div>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {isMe ? (
           player.cards.map((card, idx) => (
-            <div key={idx} className="flex-1 bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs font-semibold text-center text-slate-700">
-              {I18N[lang].roles[card]}
-            </div>
+            <RoleChip key={idx} role={card} label={t.roles[card]} size="sm" />
           ))
         ) : (
           player.cards.map((_, idx) => (
-            <div key={idx} className="flex-1 bg-slate-800 rounded px-2 py-1 text-xs font-semibold text-center text-slate-300">
+            <div key={idx} className="flex-1 min-w-[2rem] bg-slate-800 rounded px-2 py-1 text-xs font-semibold text-center text-slate-300">
               ?
             </div>
           ))
         )}
         {player.lostCards.map((card, idx) => (
-           <div key={`lost-${idx}`} className="flex-1 bg-red-50 border border-red-100 rounded px-2 py-1 text-xs font-semibold text-center text-red-300 line-through">
-              {I18N[lang].roles[card]}
-            </div>
+          <span key={`lost-${idx}`} className="opacity-70 line-through">
+            <RoleChip role={card} label={t.roles[card]} size="sm" />
+          </span>
         ))}
       </div>
     </div>

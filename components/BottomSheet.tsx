@@ -22,12 +22,12 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ open, onClose, title, 
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/50 z-40 sm:hidden"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 sm:hidden"
         aria-hidden
         onClick={onClose}
       />
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-[0_-8px_30px_rgba(0,0,0,0.12)] max-h-[85vh] flex flex-col sm:hidden"
+        className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-[0_-8px_30px_rgba(0,0,0,0.12)] max-h-[85vh] flex flex-col sm:hidden transition-transform duration-300 ease-out translate-y-0"
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? 'bottom-sheet-title' : undefined}

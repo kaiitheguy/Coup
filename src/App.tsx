@@ -7,6 +7,7 @@ import { RoleChip } from '../constants/roleMeta';
 import { Button } from '../components/Button';
 import { PlayerCard } from '../components/PlayerCard';
 import { GameLog } from '../components/GameLog';
+import { Logo } from './components/Logo';
 import { Crown, Copy, Users, Globe, BadgeCheck, Wallet, Coins, Landmark, Hand, Swords, Zap, RefreshCw } from 'lucide-react';
 import { connectSocket, getSocket, emitGameState, RoomState, Player as SocketPlayer } from './net/socket';
 import { useIsMobile } from './hooks/useMediaQuery';
@@ -480,20 +481,29 @@ function App() {
 
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row h-screen overflow-hidden">
-        {/* Top Bar (Mobile) / Header — safe-area, sticky, 44px tap target for lang toggle */}
+        {/* Top Bar (Mobile) / Header — safe-area, sticky, Logo + Lang + Exit, 44px tap targets */}
         <div
-          className="md:hidden bg-white border-b border-slate-200 flex justify-between items-center z-10 flex-shrink-0 sticky top-0 px-4 py-2"
-          style={{ paddingTop: 'calc(env(safe-area-inset-top) + 8px)' }}
+          className="md:hidden bg-white/90 backdrop-blur border-b border-slate-200 flex justify-between items-center flex-shrink-0 sticky top-0 z-40 px-4 py-2"
+          style={{ paddingTop: 'calc(env(safe-area-inset-top) + 12px)' }}
         >
-          <div className="font-bold text-slate-800 leading-tight">{t.lobby.title}</div>
-          <button
-            type="button"
-            onClick={toggleLang}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-sm font-bold bg-slate-100 rounded-lg -m-1 p-1 touch-manipulation"
-            aria-label={lang === 'en' ? 'Switch to 中文' : 'Switch to EN'}
-          >
-            {lang === 'en' ? 'EN' : '中'}
-          </button>
+          <Logo size={28} withText />
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={toggleLang}
+              className="min-h-11 min-w-11 flex items-center justify-center text-sm font-bold bg-slate-100 rounded-xl px-4 py-2.5 touch-manipulation transition active:scale-[0.98]"
+              aria-label={lang === 'en' ? 'Switch to 中文' : 'Switch to EN'}
+            >
+              {lang === 'en' ? 'EN' : '中'}
+            </button>
+            <button
+              type="button"
+              onClick={handleExitGame}
+              className="min-h-11 min-w-11 flex items-center justify-center text-sm font-bold text-slate-500 hover:text-red-600 rounded-xl px-4 py-2.5 border border-slate-200 hover:border-red-200 touch-manipulation transition active:scale-[0.98]"
+            >
+              {t.game.exitGame}
+            </button>
+          </div>
         </div>
 
         {/* LEFT COL: Players */}
@@ -517,15 +527,20 @@ function App() {
 
         {/* RIGHT COL: Main Game Area */}
         <div className="flex-1 flex flex-col relative bg-white">
-          {/* Game Status Banner */}
+          {/* Game Status Banner — turn pill badge on desktop; Exit/Lang only on desktop (mobile has in header) */}
           <div className="p-4 border-b border-slate-100 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">
-                {gameState.winnerId
-                  ? t.game.winner
-                  : `${t.game.turn}: ${getName(gameState.players[gameState.turnIndex]?.id ?? '')}`}
-              </h2>
-              <div className="text-sm text-slate-500">
+              {gameState.winnerId ? (
+                <h2 className="text-lg font-bold text-slate-900">{t.game.winner}</h2>
+              ) : (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 font-semibold rounded-full px-3 py-1.5 text-sm">
+                    <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" aria-hidden />
+                    {t.game.turn}: {getName(gameState.players[gameState.turnIndex]?.id ?? '')}
+                  </span>
+                </div>
+              )}
+              <div className="text-sm text-slate-500 mt-3">
                 {gameState.phase === Phase.ACTION_SELECTION && t.status.waiting}
                 {gameState.phase === Phase.CHALLENGE_WINDOW && t.status.challenging}
                 {gameState.phase === Phase.BLOCK_RESPONSE && t.status.blocking}
@@ -533,21 +548,48 @@ function App() {
                 {gameState.phase === Phase.EXCHANGE_SELECT && (gameState.exchangePlayerId === myPlayerId ? t.status.exchangeSelect : `Waiting for ${getName(gameState.exchangePlayerId ?? '')} to choose 2 cards.`)}
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 hidden md:flex">
               <button
                 onClick={handleExitGame}
-                className="flex items-center gap-2 text-slate-500 hover:text-red-600 font-bold text-sm px-2 py-1 rounded border border-slate-200 hover:border-red-200"
+                className="flex items-center gap-2 text-slate-500 hover:text-red-600 font-bold text-sm px-3 py-2 rounded-xl border border-slate-200 hover:border-red-200 transition active:scale-[0.98]"
               >
                 {t.game.exitGame}
               </button>
               <button
                 onClick={toggleLang}
-                className="hidden md:flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold text-sm"
+                className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold text-sm px-3 py-2 rounded-xl transition active:scale-[0.98]"
               >
                 <Globe size={16} /> {lang === 'en' ? 'EN' : '中文'}
               </button>
             </div>
           </div>
+
+          {/* Victory overlay when game over */}
+          {gameState.winnerId && (
+            <div className="absolute inset-0 z-20 flex items-center justify-center p-4 bg-slate-900/20 backdrop-blur-sm">
+              <div className="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-sm w-full p-6 text-center bg-gradient-to-b from-slate-50 to-white">
+                <div className="flex justify-center mb-4">
+                  <Logo size={64} withText={false} />
+                </div>
+                <h2 className="text-xl font-bold text-slate-800 mb-1">{t.game.winner}</h2>
+                <p className="text-2xl font-black text-indigo-600 mb-6">
+                  {getName(gameState.winnerId)}
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                  {isHost ? (
+                    <Button variant="primary" onClick={handlePlayAgain} className="min-h-11">
+                      {t.game.playAgain}
+                    </Button>
+                  ) : (
+                    <span className="text-slate-400 text-sm py-2">{t.game.playAgainHostOnly}</span>
+                  )}
+                  <Button variant="secondary" onClick={handleExitGame} className="min-h-11">
+                    {t.game.exitGame}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* LOGS */}
           <div className="flex-1 p-4 overflow-hidden relative">
@@ -591,13 +633,13 @@ function App() {
                 <>
                   <div className="grid grid-cols-3 gap-2">
                     {[
-                      [ActionType.INCOME, Wallet],
-                      [ActionType.FOREIGN_AID, Coins],
-                      [ActionType.TAX, Landmark],
-                    ].map(([action, Icon]) => (
+                      [ActionType.INCOME, Wallet, 'bg-slate-100 hover:bg-slate-200 text-slate-800'],
+                      [ActionType.FOREIGN_AID, Coins, 'bg-slate-100 hover:bg-slate-200 text-slate-800'],
+                      [ActionType.TAX, Landmark, 'bg-violet-100 hover:bg-violet-200 text-violet-800'],
+                    ].map(([action, Icon, baseClass]) => (
                       <button
                         key={action as string}
-                        className="min-h-[48px] rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold flex items-center justify-center gap-1.5 text-sm"
+                        className={`min-h-[48px] rounded-xl font-bold flex items-center justify-center gap-1.5 text-sm transition active:scale-[0.98] ${baseClass}`}
                         onClick={() => {
                           const newState = GameEngine.applyAction(gameState, {
                             type: 'SUBMIT_ACTION',
@@ -615,11 +657,11 @@ function App() {
                   </div>
                   <div className="grid grid-cols-4 gap-2 mt-2">
                     {[
-                      [ActionType.STEAL, Hand, myPlayer!.coins, 0],
-                      [ActionType.ASSASSINATE, Swords, myPlayer!.coins, 3],
-                      [ActionType.COUP, Zap, myPlayer!.coins, 7],
-                      [ActionType.EXCHANGE, RefreshCw, 0, 0],
-                    ].map(([action, Icon, coins, need]) => {
+                      [ActionType.STEAL, Hand, myPlayer!.coins, 0, 'bg-red-100 hover:bg-red-200 text-red-800'],
+                      [ActionType.ASSASSINATE, Swords, myPlayer!.coins, 3, 'bg-red-100 hover:bg-red-200 text-red-800'],
+                      [ActionType.COUP, Zap, myPlayer!.coins, 7, 'bg-red-500 hover:bg-red-600 text-white shadow-md'],
+                      [ActionType.EXCHANGE, RefreshCw, 0, 0, 'bg-teal-100 hover:bg-teal-200 text-teal-800'],
+                    ].map(([action, Icon, coins, need, activeClass]) => {
                       const needCoinsDisabled = need ? (coins as number) < need : false;
                       const deckTooSmall = (action as ActionType) === ActionType.EXCHANGE && (gameState.deck?.length ?? 0) < 2;
                       const disabled = needCoinsDisabled || deckTooSmall;
@@ -633,12 +675,10 @@ function App() {
                           key={action as string}
                           disabled={disabled || noTarget}
                           title={title}
-                          className={`min-h-[48px] rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 text-xs ${
+                          className={`min-h-[48px] rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 text-xs transition active:scale-[0.98] ${
                             disabled || noTarget
                               ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                              : action === ActionType.COUP
-                                ? 'bg-red-500 text-white shadow-md'
-                                : 'bg-slate-200 hover:bg-slate-300 text-slate-800'
+                              : activeClass
                           }`}
                           onClick={() => {
                             if (disabled || noTarget) return;
@@ -667,8 +707,12 @@ function App() {
             </div>
           )}
 
-          {/* BOTTOM ACTION PANEL (hidden on mobile when showing fixed bar or when showing prompt/lose sheet) */}
-          <div className={`p-4 bg-white border-t border-slate-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 ${isMobile && gameState.phase === Phase.ACTION_SELECTION && isMyTurn ? 'hidden sm:block' : ''}`}>
+          {/* BOTTOM ACTION PANEL — card on desktop; hidden on mobile when fixed bar shown */}
+          <div
+            className={`p-4 sm:p-3 bg-white border-t border-slate-100 sm:border sm:border-slate-200 sm:rounded-2xl sm:shadow-sm sm:mx-4 sm:mb-4 z-20 max-w-2xl sm:max-w-none ${
+              isMobile && gameState.phase === Phase.ACTION_SELECTION && isMyTurn ? 'hidden sm:block' : ''
+            }`}
+          >
             {/* Action: Exchange — choose 2 cards to return (desktop; mobile uses sheet below) */}
             {gameState.phase === Phase.EXCHANGE_SELECT &&
               gameState.exchangePlayerId === myPlayerId &&
@@ -785,9 +829,9 @@ function App() {
                   </>
                 ) : myPlayer!.coins >= 10 ? (
                   <div>
-                    <p className="text-sm text-amber-600 font-medium mb-2">{t.game.mustCoup}</p>
-                    <Button
-                      variant="danger"
+                    <p className="text-xs text-amber-600 font-medium mb-2">{t.game.mustCoup}</p>
+                    <button
+                      type="button"
                       onClick={() => {
                         const validTargetIds = gameState.players
                           .filter((p) => p.isAlive && p.id !== myPlayerId)
@@ -795,108 +839,91 @@ function App() {
                         setTargetSelection({ mode: 'select-target', action: ActionType.COUP, validTargetIds });
                         setSelectedTargetId(null);
                       }}
+                      className="h-10 px-4 rounded-xl font-medium bg-rose-600 text-white border border-rose-700 hover:bg-rose-700 hover:shadow-sm active:scale-[0.98] transition-all inline-flex items-center gap-2"
                     >
+                      <Zap size={16} />
                       {t.actions[ActionType.COUP]} — {t.game.target}
-                    </Button>
+                    </button>
                   </div>
                 ) : (
                   <>
-                    <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                      <Button
-                        onClick={() => {
-                          const newState = GameEngine.applyAction(gameState, {
-                            type: 'SUBMIT_ACTION',
-                            payload: { actionType: ActionType.INCOME },
-                          });
-                          setGameState(newState);
-                          const roomCode = sessionStorage.getItem('roomCode');
-                          if (roomCode) emitGameState(roomCode, newState as unknown as Record<string, unknown>);
-                        }}
-                      >
-                        {t.actions[ActionType.INCOME]}
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          const newState = GameEngine.applyAction(gameState, {
-                            type: 'SUBMIT_ACTION',
-                            payload: { actionType: ActionType.FOREIGN_AID },
-                          });
-                          setGameState(newState);
-                          const roomCode = sessionStorage.getItem('roomCode');
-                          if (roomCode) emitGameState(roomCode, newState as unknown as Record<string, unknown>);
-                        }}
-                      >
-                        {t.actions[ActionType.FOREIGN_AID]}
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          const newState = GameEngine.applyAction(gameState, {
-                            type: 'SUBMIT_ACTION',
-                            payload: { actionType: ActionType.TAX },
-                          });
-                          setGameState(newState);
-                          const roomCode = sessionStorage.getItem('roomCode');
-                          if (roomCode) emitGameState(roomCode, newState as unknown as Record<string, unknown>);
-                        }}
-                      >
-                        {t.actions[ActionType.TAX]}
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        disabled={(gameState.deck?.length ?? 0) < 2}
-                        title={(gameState.deck?.length ?? 0) < 2 ? t.prompt.deckTooSmall : undefined}
-                        onClick={() => {
-                          const newState = GameEngine.applyAction(gameState, {
-                            type: 'SUBMIT_ACTION',
-                            payload: { actionType: ActionType.EXCHANGE },
-                          });
-                          setGameState(newState);
-                          const roomCode = sessionStorage.getItem('roomCode');
-                          if (roomCode) emitGameState(roomCode, newState as unknown as Record<string, unknown>);
-                        }}
-                      >
-                        {t.actions[ActionType.EXCHANGE]}
-                      </Button>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        [ActionType.INCOME, Wallet, 'bg-slate-50 border-slate-200 text-slate-900 hover:bg-slate-100 hover:shadow-sm'],
+                        [ActionType.FOREIGN_AID, Coins, 'bg-slate-50 border-slate-200 text-slate-900 hover:bg-slate-100 hover:shadow-sm'],
+                        [ActionType.TAX, Landmark, 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100 hover:shadow-sm'],
+                        [ActionType.EXCHANGE, RefreshCw, 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100 hover:shadow-sm'],
+                      ].map(([action, Icon, btnClass]) => {
+                        const deckTooSmall = (action as ActionType) === ActionType.EXCHANGE && (gameState.deck?.length ?? 0) < 2;
+                        const disabled = deckTooSmall;
+                        const title = deckTooSmall ? t.prompt.deckTooSmall : undefined;
+                        return (
+                          <button
+                            key={action as string}
+                            type="button"
+                            disabled={disabled}
+                            title={title}
+                            onClick={() => {
+                              if (action === ActionType.EXCHANGE) {
+                                const newState = GameEngine.applyAction(gameState, {
+                                  type: 'SUBMIT_ACTION',
+                                  payload: { actionType: ActionType.EXCHANGE },
+                                });
+                                setGameState(newState);
+                                const roomCode = sessionStorage.getItem('roomCode');
+                                if (roomCode) emitGameState(roomCode, newState as unknown as Record<string, unknown>);
+                                return;
+                              }
+                              const newState = GameEngine.applyAction(gameState, {
+                                type: 'SUBMIT_ACTION',
+                                payload: { actionType: action as ActionType },
+                              });
+                              setGameState(newState);
+                              const roomCode = sessionStorage.getItem('roomCode');
+                              if (roomCode) emitGameState(roomCode, newState as unknown as Record<string, unknown>);
+                            }}
+                            className={`h-10 rounded-xl font-medium border flex items-center justify-center gap-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-sm active:scale-[0.98] transition-all ${disabled ? 'bg-slate-50 border-slate-200 text-slate-400' : btnClass}`}
+                          >
+                            <Icon size={14} />
+                            {t.actionsShort[action as ActionType]}
+                          </button>
+                        );
+                      })}
                     </div>
-                    <div className="flex flex-wrap gap-2 items-center">
-                      <Button
-                        variant="danger"
-                        disabled={myPlayer!.coins < 7}
-                        onClick={() => {
-                          const validTargetIds = gameState.players
-                            .filter((p) => p.isAlive && p.id !== myPlayerId)
-                            .map((p) => p.id);
-                          setTargetSelection({ mode: 'select-target', action: ActionType.COUP, validTargetIds });
-                          setSelectedTargetId(null);
-                        }}
-                      >
-                        {t.actions[ActionType.COUP]}
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        disabled={myPlayer!.coins < 3}
-                        onClick={() => {
-                          const validTargetIds = gameState.players
-                            .filter((p) => p.isAlive && p.id !== myPlayerId)
-                            .map((p) => p.id);
-                          setTargetSelection({ mode: 'select-target', action: ActionType.ASSASSINATE, validTargetIds });
-                          setSelectedTargetId(null);
-                        }}
-                      >
-                        {t.actions[ActionType.ASSASSINATE]}
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        onClick={() => {
-                          const validTargetIds = gameState.players
-                            .filter((p) => p.isAlive && p.id !== myPlayerId)
-                            .map((p) => p.id);
-                          setTargetSelection({ mode: 'select-target', action: ActionType.STEAL, validTargetIds });
-                          setSelectedTargetId(null);
-                        }}
-                      >
-                        {t.actions[ActionType.STEAL]}
-                      </Button>
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      {[
+                        [ActionType.COUP, Zap, myPlayer!.coins, 7, 'bg-rose-600 border-rose-700 text-white hover:bg-rose-700 hover:shadow-sm'],
+                        [ActionType.ASSASSINATE, Swords, myPlayer!.coins, 3, 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 hover:shadow-sm'],
+                        [ActionType.STEAL, Hand, 0, 0, 'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100 hover:shadow-sm'],
+                      ].map(([action, Icon, coins, need, btnClass]) => {
+                        const needCoinsDisabled = need ? (coins as number) < need : false;
+                        const validTargetIds = gameState.players
+                          .filter((p) => p.isAlive && p.id !== myPlayerId)
+                          .map((p) => p.id);
+                        const noTarget = validTargetIds.length === 0;
+                        const disabled = needCoinsDisabled || noTarget;
+                        const title = needCoinsDisabled ? t.prompt.needCoins.replace('{n}', String(need)) : noTarget ? t.prompt.noValidTarget : undefined;
+                        return (
+                          <button
+                            key={action as string}
+                            type="button"
+                            disabled={disabled}
+                            title={title}
+                            onClick={() => {
+                              setTargetSelection({
+                                mode: 'select-target',
+                                action: action as ActionType.COUP | ActionType.ASSASSINATE | ActionType.STEAL,
+                                validTargetIds,
+                              });
+                              setSelectedTargetId(null);
+                            }}
+                            className={`h-10 rounded-xl font-medium border flex items-center justify-center gap-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-sm active:scale-[0.98] transition-all ${disabled ? 'bg-slate-50 border-slate-200 text-slate-400' : btnClass}`}
+                          >
+                            <Icon size={14} />
+                            {t.actionsShort[action as ActionType]}
+                          </button>
+                        );
+                      })}
                     </div>
                   </>
                 )}
@@ -1072,19 +1099,13 @@ function App() {
               <div className="text-center text-slate-400 italic py-2">{t.status.waiting}</div>
             )}
 
-            {/* Game Over: Play Again (host) + Exit */}
+            {/* Game Over actions also in panel for desktop (Victory overlay has primary copy) */}
             {gameState.winnerId && (
-              <div className="flex flex-wrap gap-2 items-center pt-2 border-t border-slate-100">
-                {isHost ? (
-                  <Button variant="primary" onClick={handlePlayAgain}>
-                    {t.game.playAgain}
-                  </Button>
-                ) : (
-                  <span className="text-slate-400 text-sm italic">{t.game.playAgainHostOnly}</span>
+              <div className="flex flex-wrap gap-2 items-center pt-2 border-t border-slate-100 hidden sm:flex">
+                {isHost && (
+                  <Button variant="primary" onClick={handlePlayAgain}>{t.game.playAgain}</Button>
                 )}
-                <Button variant="secondary" onClick={handleExitGame}>
-                  {t.game.exitGame}
-                </Button>
+                <Button variant="secondary" onClick={handleExitGame}>{t.game.exitGame}</Button>
               </div>
             )}
           </div>

@@ -3,13 +3,14 @@ import { Language } from '../types';
 import { I18N } from '../constants';
 import { classifyLogLine, LogTone } from '../utils/gameUtils';
 
+/** Muted tone colors (no neon) for game UI log */
 const TONE_CLASSES: Record<LogTone, string> = {
   system: 'text-slate-600',
-  action: 'text-blue-700',
-  success: 'text-emerald-700',
-  block: 'text-amber-700',
-  challenge: 'text-violet-700',
-  danger: 'text-red-700',
+  action: 'text-indigo-600',
+  success: 'text-emerald-600',
+  block: 'text-amber-600',
+  challenge: 'text-violet-600',
+  danger: 'text-rose-600',
 };
 
 /** Split line into segments; segments at odd indices are bold names */
@@ -23,6 +24,9 @@ function segmentWithBold(line: string, boldNames: string[]): (string | React.Rea
     i % 2 === 1 ? <strong key={i} className="font-semibold text-inherit">{part}</strong> : part
   );
 }
+
+/** Compact main text — no base text color so TONE_CLASSES[tone] controls color */
+const LOG_TEXT = 'text-[14px] leading-5';
 
 interface GameLogProps {
   logs: string[];
@@ -39,27 +43,31 @@ export const GameLog: React.FC<GameLogProps> = ({ logs, lang, boldNames = [] }) 
   }, [logs]);
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 rounded-xl border border-slate-100 overflow-hidden">
-      <div className="p-3 bg-white border-b border-slate-100 font-bold text-xs uppercase text-slate-400 tracking-wider">
+    <div className="flex flex-col h-full bg-white rounded-xl border border-slate-200 overflow-hidden sm:shadow-sm">
+      <div className="px-3 py-2 border-b border-slate-200 font-bold text-xs uppercase text-slate-400 tracking-wider shrink-0">
         {I18N[lang].game.logs}
       </div>
-      <div className="flex-1 overflow-y-auto p-3 space-y-2 no-scrollbar">
-        {logs.length === 0 && <div className="text-center text-gray-400 text-sm mt-4">Game started...</div>}
-        {logs.map((log, i) => {
-          const tone = classifyLogLine(log);
-          const content = segmentWithBold(log, boldNames);
-          return (
-            <div
-              key={i}
-              className={`text-sm leading-relaxed border-b border-slate-100 pb-1 last:border-0 ${TONE_CLASSES[tone]}`}
-            >
-              <span className="text-slate-400 text-xs mr-2 tabular-nums font-mono w-6 inline-block text-right">
-                [{i + 1}]
-              </span>
-              {content}
-            </div>
-          );
-        })}
+      <div className="flex-1 overflow-y-auto px-3 py-2 no-scrollbar min-h-0">
+        {logs.length === 0 && <div className="text-center text-slate-400 text-sm py-4">Game started...</div>}
+        <div className="space-y-0">
+          {logs.map((log, i) => {
+            const tone = classifyLogLine(log);
+            const content = segmentWithBold(log, boldNames);
+            return (
+              <div
+                key={i}
+                className="group flex items-start px-3 py-2 rounded-lg hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
+              >
+                <div className={`flex-1 min-w-0 ${TONE_CLASSES[tone]} ${LOG_TEXT}`}>
+                  <span className="text-[11px] text-slate-400 tabular-nums bg-slate-100 rounded px-1.5 py-0.5 mr-2 align-baseline inline-block">
+                    #{i + 1}
+                  </span>
+                  {content}
+                </div>
+              </div>
+            );
+          })}
+        </div>
         <div ref={bottomRef} />
       </div>
     </div>

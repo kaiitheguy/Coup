@@ -25,9 +25,9 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
 }) => {
   if (!player.isAlive) {
     return (
-      <div className="flex items-center p-3 rounded-lg bg-gray-100 border border-gray-200 opacity-60">
-        <Skull className="w-5 h-5 mr-3 text-gray-400" />
-        <span className="line-through text-gray-500 font-medium">{player.name}</span>
+      <div className="flex items-center p-3 rounded-xl border border-slate-200 bg-slate-50 grayscale opacity-40 transition-all">
+        <Skull className="w-5 h-5 mr-3 text-slate-400 shrink-0" aria-hidden />
+        <span className="line-through text-slate-500 font-medium">{player.name}</span>
       </div>
     );
   }
@@ -43,7 +43,7 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
       onKeyDown={isClickable ? (e) => e.key === 'Enter' && onTargetClick?.() : undefined}
       className={`
         relative p-4 rounded-xl border-2 transition-all
-        ${isCurrentTurn ? 'border-slate-800 bg-white shadow-lg scale-[1.02]' : 'border-transparent bg-white shadow-sm'}
+        ${isCurrentTurn ? 'border-indigo-400 bg-white shadow-lg ring-2 ring-indigo-200 ring-offset-2' : 'border-slate-200 bg-white shadow-sm'}
         ${isTargetSelectable ? 'cursor-pointer hover:border-slate-400 hover:shadow-md' : ''}
         ${isTargetSelected ? 'ring-2 ring-indigo-500 ring-offset-2 border-indigo-400' : ''}
         ${isTargetSelectable && !isTargetSelected ? 'border-dashed border-slate-300' : ''}
@@ -71,9 +71,12 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
           ))
         ) : (
           player.cards.map((_, idx) => (
-            <div key={idx} className="flex-1 min-w-[2rem] bg-slate-800 rounded px-2 py-1 text-xs font-semibold text-center text-slate-300">
+            <span
+              key={idx}
+              className="inline-flex items-center justify-center gap-1 rounded border border-slate-600 bg-slate-800 px-1.5 py-0.5 min-w-[2.5rem] min-h-[1.75rem] text-xs font-semibold text-slate-300"
+            >
               ?
-            </div>
+            </span>
           ))
         )}
         {player.lostCards.map((card, idx) => (

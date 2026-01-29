@@ -484,7 +484,7 @@ function App() {
         {/* Top Bar (Mobile) / Header — safe-area, sticky, Logo + Lang + Exit, 44px tap targets */}
         <div
           className="md:hidden bg-white/90 backdrop-blur border-b border-slate-200 flex justify-between items-center flex-shrink-0 sticky top-0 z-40 px-4 py-2"
-          style={{ paddingTop: 'calc(env(safe-area-inset-top) + 12px)' }}
+          style={{ paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 12px), 28px)' }}
         >
           <Logo size={28} withText />
           <div className="flex items-center gap-1">

@@ -33,6 +33,17 @@
           -ms-overflow-style: none;  /* IE and Edge */
           scrollbar-width: none;  /* Firefox */
       }
+      /* Easter egg: LLL wiggle (runs once on mount via animation-iteration-count: 1) */
+      @keyframes wiggle {
+        0%, 100% { transform: rotate(0deg); }
+        25% { transform: rotate(-3deg); }
+        75% { transform: rotate(3deg); }
+      }
+      /* Easter egg: 1k light confetti burst */
+      @keyframes confetti-fall {
+        0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+        100% { transform: translateY(80px) rotate(180deg); opacity: 0; }
+      }
     </style>
 </head>
   <body class="bg-gray-50 text-slate-900 antialiased overflow-hidden">

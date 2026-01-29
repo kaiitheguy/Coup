@@ -2,6 +2,7 @@ import React from 'react';
 import { Player, Language } from '../types';
 import { I18N } from '../constants';
 import { RoleChip } from '../constants/roleMeta';
+import { getEgg } from '../src/easterEggs';
 import { User, Coins, Skull } from 'lucide-react';
 
 interface PlayerCardProps {
@@ -34,6 +35,9 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
 
   const t = I18N[lang];
   const isClickable = isTargetSelectable && onTargetClick;
+  const egg = getEgg(player.name);
+  const turnDefault = 'border-indigo-400 bg-white shadow-lg ring-2 ring-indigo-200 ring-offset-2';
+  const turnStyle = isCurrentTurn ? (egg?.turnClass ?? turnDefault) : 'border-slate-200 bg-white shadow-sm';
 
   return (
     <div
@@ -43,7 +47,9 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
       onKeyDown={isClickable ? (e) => e.key === 'Enter' && onTargetClick?.() : undefined}
       className={`
         relative p-4 rounded-xl border-2 transition-all
-        ${isCurrentTurn ? 'border-indigo-400 bg-white shadow-lg ring-2 ring-indigo-200 ring-offset-2' : 'border-slate-200 bg-white shadow-sm'}
+        ${turnStyle}
+        ${egg ? ` ${egg.cardClass}` : ''}
+        ${egg?.themeClass ?? ''}
         ${isTargetSelectable ? 'cursor-pointer hover:border-slate-400 hover:shadow-md' : ''}
         ${isTargetSelected ? 'ring-2 ring-indigo-500 ring-offset-2 border-indigo-400' : ''}
         ${isTargetSelectable && !isTargetSelected ? 'border-dashed border-slate-300' : ''}
@@ -54,8 +60,10 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isMe ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-700'}`}>
             <User size={18} />
           </div>
-          <span className="font-bold text-slate-900">
-            {player.name} {isMe && <span className="text-xs bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded ml-1">{t.game.you}</span>}
+          <span className={egg ? egg.nameClass : 'font-bold text-slate-900'}>
+            {player.name}
+            {egg && <span className="ml-1.5 text-lg bg-transparent" aria-hidden>{egg.emoji}</span>}
+            {isMe && <span className="text-xs bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded ml-1">{t.game.you}</span>}
           </span>
         </div>
         <div className="flex items-center gap-1 bg-yellow-50 px-2 py-1 rounded-full border border-yellow-100 text-yellow-700">

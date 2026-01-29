@@ -12,6 +12,7 @@ import { Crown, Copy, Users, Globe, BadgeCheck, Wallet, Coins, Landmark, Hand, S
 import { connectSocket, getSocket, emitGameState, RoomState, Player as SocketPlayer } from './net/socket';
 import { useIsMobile } from './hooks/useMediaQuery';
 import { BottomSheet } from '../components/BottomSheet';
+import { hasJoinConfetti, getCoupButtonClass } from './easterEggs';
 
 type View = 'landing' | 'room' | 'game';
 
@@ -25,6 +26,7 @@ function App() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [error, setError] = useState<string>('');
   const [exchangeReturnIndices, setExchangeReturnIndices] = useState<number[]>([]);
+  const [showConfetti, setShowConfetti] = useState(false);
   /** UI-only: when choosing Coup/Assassinate/Steal, user clicks a player card to select target */
   const [targetSelection, setTargetSelection] = useState<{
     mode: 'select-target';
@@ -295,6 +297,25 @@ function App() {
     }
   }, [roomState?.status, roomState?.players, roomState?.hostId, roomState?.roomCode]);
 
+  // Easter egg: 1k confetti once per session
+  useEffect(() => {
+    if (view !== 'game' || !gameState) return;
+    const roomCode = sessionStorage.getItem('roomCode');
+    const myPlayer = gameState.players.find((p) => p.id === myPlayerId);
+    const name = myPlayer?.name;
+    if (!name || !roomCode || !hasJoinConfetti(name)) return;
+    const key = `egg_confetti_${roomCode}_${name}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+    setShowConfetti(true);
+  }, [view, gameState, myPlayerId]);
+
+  useEffect(() => {
+    if (!showConfetti) return;
+    const t = setTimeout(() => setShowConfetti(false), 1300);
+    return () => clearTimeout(t);
+  }, [showConfetti]);
+
   // LANDING VIEW
   if (view === 'landing') {
     return (
@@ -484,9 +505,35 @@ function App() {
     const isMyTurn = myPlayerId === gameState.players[gameState.turnIndex]?.id;
     const isHost = myPlayerId === gameState.hostPlayerId;
     const getName = (playerId: string) => getPlayerName(gameState, playerId);
+    const coupGlowClass = getCoupButtonClass(myPlayer?.name ?? '');
+
+    const CONFETTI_COLORS = ['#ec4899', '#f472b6', '#fbbf24', '#a78bfa'];
+    const confettiPieces = showConfetti ? Array.from({ length: 14 }, (_, i) => ({
+      id: i,
+      left: 15 + (i * 6) % 70,
+      delay: (i * 0.04) % 0.5,
+      color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+    })) : [];
 
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row h-screen overflow-hidden">
+        {showConfetti && (
+          <div className="fixed inset-0 pointer-events-none z-[100]" aria-hidden>
+            {confettiPieces.map(({ id, left, delay, color }) => (
+              <div
+                key={id}
+                className="absolute w-2 h-2 rounded-sm"
+                style={{
+                  left: `${left}%`,
+                  top: '30%',
+                  background: color,
+                  animation: 'confetti-fall 1.2s ease-out forwards',
+                  animationDelay: `${delay}s`,
+                }}
+              />
+            ))}
+          </div>
+        )}
         {/* Top Bar (Mobile) / Header — safe-area, sticky, Logo + Lang + Exit, 44px tap targets */}
         <div
           className="md:hidden bg-white/90 backdrop-blur border-b border-slate-200 flex justify-between items-center flex-shrink-0 sticky top-0 z-40 px-4 py-2"
@@ -622,7 +669,7 @@ function App() {
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-amber-600 text-center">{t.game.mustCoup}</p>
                   <button
-                    className="w-full min-h-[48px] rounded-xl bg-red-500 text-white font-bold shadow-md flex items-center justify-center gap-2"
+                    className={`w-full min-h-[48px] rounded-xl bg-red-500 text-white font-bold shadow-md flex items-center justify-center gap-2 ${coupGlowClass ?? ''}`}
                     onClick={() => {
                       const validTargetIds = gameState.players
                         .filter((p) => p.isAlive && p.id !== myPlayerId)
@@ -676,12 +723,14 @@ function App() {
                         .map((p) => p.id);
                       const noTarget = [ActionType.STEAL, ActionType.ASSASSINATE, ActionType.COUP].includes(action as ActionType) && validTargetIds.length === 0;
                       const title = needCoinsDisabled ? t.prompt.needCoins.replace('{n}', String(need)) : deckTooSmall ? t.prompt.deckTooSmall : noTarget ? t.prompt.noValidTarget : undefined;
+                      const isCoup = action === ActionType.COUP;
+                      const coupExtra = isCoup && !disabled && !noTarget && coupGlowClass ? coupGlowClass : '';
                       return (
                         <button
                           key={action as string}
                           disabled={disabled || noTarget}
                           title={title}
-                          className={`min-h-[48px] rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 text-xs transition active:scale-[0.98] ${
+                          className={`min-h-[48px] rounded-xl font-bold flex flex-col items-center justify-center gap-0.5 text-xs transition active:scale-[0.98] ${coupExtra} ${
                             disabled || noTarget
                               ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                               : activeClass
@@ -845,7 +894,7 @@ function App() {
                         setTargetSelection({ mode: 'select-target', action: ActionType.COUP, validTargetIds });
                         setSelectedTargetId(null);
                       }}
-                      className="h-10 px-4 rounded-xl font-medium bg-rose-600 text-white border border-rose-700 hover:bg-rose-700 hover:shadow-sm active:scale-[0.98] transition-all inline-flex items-center gap-2"
+                      className={`h-10 px-4 rounded-xl font-medium bg-rose-600 text-white border border-rose-700 hover:bg-rose-700 hover:shadow-sm active:scale-[0.98] transition-all inline-flex items-center gap-2 ${coupGlowClass ?? ''}`}
                     >
                       <Zap size={16} />
                       {t.actions[ActionType.COUP]} — {t.game.target}
@@ -909,6 +958,8 @@ function App() {
                         const noTarget = validTargetIds.length === 0;
                         const disabled = needCoinsDisabled || noTarget;
                         const title = needCoinsDisabled ? t.prompt.needCoins.replace('{n}', String(need)) : noTarget ? t.prompt.noValidTarget : undefined;
+                        const isCoup = action === ActionType.COUP;
+                        const coupExtra = isCoup && !disabled && coupGlowClass ? coupGlowClass : '';
                         return (
                           <button
                             key={action as string}
@@ -923,7 +974,7 @@ function App() {
                               });
                               setSelectedTargetId(null);
                             }}
-                            className={`h-10 rounded-xl font-medium border flex items-center justify-center gap-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-sm active:scale-[0.98] transition-all ${disabled ? 'bg-slate-50 border-slate-200 text-slate-400' : btnClass}`}
+                            className={`h-10 rounded-xl font-medium border flex items-center justify-center gap-1.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-sm active:scale-[0.98] transition-all ${coupExtra} ${disabled ? 'bg-slate-50 border-slate-200 text-slate-400' : btnClass}`}
                           >
                             <Icon size={14} />
                             {t.actionsShort[action as ActionType]}

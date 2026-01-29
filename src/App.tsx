@@ -299,10 +299,13 @@ function App() {
   if (view === 'landing') {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-        <div className="absolute top-4 right-4">
+        <div
+          className="absolute right-4 md:top-4"
+          style={{ top: 'max(calc(env(safe-area-inset-top, 0px) + 16px), 44px)' }}
+        >
           <button
             onClick={toggleLang}
-            className="flex items-center gap-2 bg-white px-3 py-2 rounded-full shadow text-sm font-bold text-slate-700"
+            className="flex items-center gap-2 bg-white px-3 py-2 rounded-full shadow text-sm font-bold text-slate-700 md:min-h-11"
           >
             <Globe size={16} /> {lang === 'en' ? 'EN' : '中文'}
           </button>
@@ -377,10 +380,13 @@ function App() {
 
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-        <div className="absolute top-4 right-4">
+        <div
+          className="absolute right-4 md:top-4"
+          style={{ top: 'max(calc(env(safe-area-inset-top, 0px) + 16px), 44px)' }}
+        >
           <button
             onClick={toggleLang}
-            className="flex items-center gap-2 bg-white px-3 py-2 rounded-full shadow text-sm font-bold text-slate-700"
+            className="flex items-center gap-2 bg-white px-3 py-2 rounded-full shadow text-sm font-bold text-slate-700 md:min-h-11"
           >
             <Globe size={16} /> {lang === 'en' ? 'EN' : '中文'}
           </button>
@@ -484,7 +490,7 @@ function App() {
         {/* Top Bar (Mobile) / Header — safe-area, sticky, Logo + Lang + Exit, 44px tap targets */}
         <div
           className="md:hidden bg-white/90 backdrop-blur border-b border-slate-200 flex justify-between items-center flex-shrink-0 sticky top-0 z-40 px-4 py-2"
-          style={{ paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 40px), 88px)' }}
+          style={{ paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 20px), 44px)' }}
         >
           <Logo size={28} withText />
           <div className="flex items-center gap-1">

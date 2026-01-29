@@ -311,8 +311,7 @@ function App() {
           <div className="flex justify-center mb-6 text-slate-900">
             <Crown size={48} strokeWidth={1.5} />
           </div>
-          <h1 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">{t.lobby.title}</h1>
-          <p className="text-slate-500 mb-8">Web Prototype v0.2</p>
+          <h1 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">{t.lobby.title}</h1>
 
           <div className="space-y-4">
             <div>
@@ -390,7 +389,7 @@ function App() {
           <div className="flex justify-center mb-6 text-slate-900">
             <Crown size={48} strokeWidth={1.5} />
           </div>
-          <h1 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">{t.lobby.title}</h1>
+          <h1 className="text-3xl font-black text-slate-900 mb-12 tracking-tight">{t.lobby.title}</h1>
 
           <div className="space-y-6 mt-6">
             <div className="bg-slate-50 rounded-xl p-4">
@@ -481,12 +480,17 @@ function App() {
 
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row h-screen overflow-hidden">
-        {/* Top Bar (Mobile) / Header */}
-        <div className="md:hidden bg-white p-3 border-b border-slate-200 flex justify-between items-center z-10">
-          <div className="font-bold text-slate-800">{t.lobby.title}</div>
+        {/* Top Bar (Mobile) / Header — safe-area, sticky, 44px tap target for lang toggle */}
+        <div
+          className="md:hidden bg-white border-b border-slate-200 flex justify-between items-center z-10 flex-shrink-0 sticky top-0 px-4 py-2"
+          style={{ paddingTop: 'calc(env(safe-area-inset-top) + 8px)' }}
+        >
+          <div className="font-bold text-slate-800 leading-tight">{t.lobby.title}</div>
           <button
+            type="button"
             onClick={toggleLang}
-            className="text-sm font-bold bg-slate-100 px-2 py-1 rounded"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-sm font-bold bg-slate-100 rounded-lg -m-1 p-1 touch-manipulation"
+            aria-label={lang === 'en' ? 'Switch to 中文' : 'Switch to EN'}
           >
             {lang === 'en' ? 'EN' : '中'}
           </button>
@@ -1334,8 +1338,10 @@ function App() {
                     setGameState(newState);
                     const roomCode = sessionStorage.getItem('roomCode');
                     if (roomCode) emitGameState(roomCode, newState as unknown as Record<string, unknown>);
-                    setCardLostToast(true);
-                    setTimeout(() => setCardLostToast(false), 2000);
+                    if (!isMobile) {
+                      setCardLostToast(true);
+                      setTimeout(() => setCardLostToast(false), 2000);
+                    }
                   }}
                 >
                   <RoleChip role={card} label={t.roles[card]} size="sm" />
@@ -1345,9 +1351,9 @@ function App() {
           </BottomSheet>
         )}
 
-        {/* Toast: Card lost */}
-        {cardLostToast && (
-          <div className="fixed bottom-24 left-4 right-4 z-50 rounded-2xl bg-slate-800 text-white font-bold text-center py-3 shadow-lg sm:hidden">
+        {/* Toast: Card lost (desktop only; suppressed on mobile to avoid overlapping action bar) */}
+        {cardLostToast && !isMobile && (
+          <div className="fixed bottom-24 left-4 right-4 z-50 rounded-2xl bg-slate-800 text-white font-bold text-center py-3 shadow-lg">
             {t.prompt.cardLost}
           </div>
         )}

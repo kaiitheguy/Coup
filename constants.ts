@@ -15,7 +15,7 @@ export const ROLES_DECK = [
 export const I18N: Record<Language, I18nSchema> = {
   en: {
     lobby: {
-      title: "COUP WEB",
+      title: "COUP",
       create: "Create Room",
       join: "Join Room",
       enterName: "Enter your name",
@@ -138,7 +138,7 @@ export const I18N: Record<Language, I18nSchema> = {
     },
     game: {
       round: "回合",
-      turn: "的回合",
+      turn: "当前回合",
       coins: "金币",
       cards: "手牌",
       logs: "游戏记录",

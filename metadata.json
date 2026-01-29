@@ -1,5 +1,5 @@
 {
-  "name": "Coup Web Prototype",
+  "name": "Coup",
   "description": "A minimalist, mobile-first web implementation of the social deduction game Coup, featuring bilingual support (EN/ZH) and real-time multiplayer logic.",
   "requestFramePermissions": []
 }

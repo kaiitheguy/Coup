@@ -121,7 +121,6 @@ function App() {
               <Crown size={48} strokeWidth={1.5} />
            </div>
            <h1 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">{t.lobby.title}</h1>
-           <p className="text-slate-500 mb-8">Web Prototype v0.2</p>
 
            {!myPlayerId ? (
              <div className="space-y-4">
@@ -321,7 +320,7 @@ function App() {
           {gameState.phase === Phase.CHALLENGE_WINDOW && !isMyTurn && gameState.pendingAction?.sourceId !== myPlayerId && (
             <div className="flex gap-2">
                <div className="flex-1 text-sm font-bold flex items-center text-slate-500">
-                  {gameState.pendingAction?.sourceId} uses {t.actions[gameState.pendingAction?.type as ActionType]}...
+                  {gameState.pendingAction?.sourceId} <constants className="usesAction"> </constants> {t.actions[gameState.pendingAction?.type as ActionType]}...
                </div>
                
                {gameState.pendingAction?.type === ActionType.FOREIGN_AID && (

@@ -449,7 +449,6 @@ export const applyAction = (
               ...afterReplace,
               phase: Phase.LOSE_CARD,
               victimId: challengerId,
-              deferredExchangeSourceId: pa.sourceId,
               pendingAction: null,
               passedResponderIds: undefined,
               logs: [...afterReplace.logs, startedLog, { type: 'challenge_fail', challengerId, challengedId, claimedRole, loserId: challengerId }],

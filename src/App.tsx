@@ -617,7 +617,7 @@ function App() {
                 <BookOpen size={20} className="text-slate-600" />
               </button>
               {showCheatSheet && (
-                <div className="absolute right-0 top-full mt-1 z-50 w-[280px] max-h-[70vh] overflow-y-auto bg-white rounded-xl border border-slate-200 shadow-lg py-2 no-scrollbar">
+                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 w-[280px] max-h-[70vh] overflow-y-auto bg-white rounded-xl border border-slate-200 shadow-lg py-2 no-scrollbar">
                   <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-3 mb-2">
                     {t.cheatsheet.title}
                   </div>
@@ -715,7 +715,7 @@ function App() {
                   <BookOpen size={16} /> {t.cheatsheet.title}
                 </button>
                 {showCheatSheet && (
-                  <div className="absolute right-0 top-full mt-1 z-50 w-[280px] max-h-[70vh] overflow-y-auto bg-white rounded-xl border border-slate-200 shadow-lg py-2 no-scrollbar">
+                  <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 z-50 w-[280px] max-h-[70vh] overflow-y-auto bg-white rounded-xl border border-slate-200 shadow-lg py-2 no-scrollbar">
                     <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-3 mb-2">
                       {t.cheatsheet.title}
                     </div>

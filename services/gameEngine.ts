@@ -593,6 +593,10 @@ export const applyAction = (
       // Deferred lose card: blocker lost 1 for lying; now target loses 1 (e.g. assassinate) — chain LOSE_CARD
       if (finalState.deferredLoseCardVictimId) {
         const nextVictimId = finalState.deferredLoseCardVictimId;
+        const nextVictim = finalState.players.find((p) => p.id === nextVictimId);
+        if (!nextVictim || nextVictim.cards.length === 0) {
+          return nextTurn({ ...finalState, deferredLoseCardVictimId: null });
+        }
         return {
           ...finalState,
           victimId: nextVictimId,

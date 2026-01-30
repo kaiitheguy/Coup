@@ -1141,6 +1141,12 @@ function App() {
               !showWaitingAfterPass &&
               !gameState.passedResponderIds?.includes(myPlayerId) && (
                 <div className="flex flex-wrap gap-2 items-center hidden sm:flex">
+                  <div className="w-full flex items-center gap-2 flex-wrap mb-1">
+                    <span className="text-xs font-semibold text-slate-500">{t.game.yourInfluence}:</span>
+                    {myPlayer.cards.map((card, idx) => (
+                      <RoleChip key={idx} role={card} label={t.roles[card]} size="sm" />
+                    ))}
+                  </div>
                   <div className="w-full text-sm font-bold text-slate-500">
                     {getName(gameState.pendingAction?.sourceId ?? '')} uses{' '}
                     {t.actions[gameState.pendingAction?.type as ActionType]}
@@ -1266,6 +1272,12 @@ function App() {
               myPlayer?.isAlive &&
               !gameState.passedResponderIds?.includes(myPlayerId) && (
                 <div className="space-y-2 hidden sm:block">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-semibold text-slate-500">{t.game.yourInfluence}:</span>
+                    {myPlayer.cards.map((card, idx) => (
+                      <RoleChip key={idx} role={card} label={t.roles[card]} size="sm" />
+                    ))}
+                  </div>
                   <p className="text-slate-600 text-sm text-center">
                     {gameState.pendingAction?.sourceId === myPlayerId
                       ? `${getName(gameState.pendingAction.blockedBy ?? '')} ${t.prompt.blockedYourAction}`
@@ -1377,6 +1389,12 @@ function App() {
         {isMobile && gameState.phase === Phase.CHALLENGE_WINDOW && gameState.pendingAction?.sourceId !== myPlayerId && myPlayer?.isAlive && !showWaitingAfterPass && !gameState.passedResponderIds?.includes(myPlayerId) && (
           <BottomSheet open title={t.prompt.respond} urgency={t.prompt.respond}>
             <div className="space-y-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-semibold text-slate-500">{t.game.yourInfluence}:</span>
+                {myPlayer?.cards.map((card, idx) => (
+                  <RoleChip key={idx} role={card} label={t.roles[card]} size="sm" />
+                ))}
+              </div>
               <p className="text-slate-700 font-medium">
                 <span className="font-bold">{getName(gameState.pendingAction?.sourceId ?? '')}</span>{' '}
                 {t.prompt.usesAction}{' '}
@@ -1478,7 +1496,14 @@ function App() {
 
         {isMobile && gameState.phase === Phase.BLOCK_RESPONSE && gameState.pendingAction?.blockedBy !== myPlayerId && myPlayer?.isAlive && !gameState.passedResponderIds?.includes(myPlayerId) && (
           <BottomSheet open title={t.prompt.respond} urgency={t.prompt.respond}>
-            <p className="text-slate-700 font-medium mb-4">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-semibold text-slate-500">{t.game.yourInfluence}:</span>
+                {myPlayer?.cards.map((card, idx) => (
+                  <RoleChip key={idx} role={card} label={t.roles[card]} size="sm" />
+                ))}
+              </div>
+              <p className="text-slate-700 font-medium mb-4">
               {gameState.pendingAction?.sourceId === myPlayerId
                 ? <><span className="font-bold">{getName(gameState.pendingAction?.blockedBy ?? '')}</span> {t.prompt.blockedYourAction}</>
                 : <><span className="font-bold">{getName(gameState.pendingAction?.blockedBy ?? '')}</span> blocked. {t.status.waitingForOthers}</>}
@@ -1510,6 +1535,7 @@ function App() {
               >
                 {gameState.pendingAction?.sourceId === myPlayerId ? t.prompt.acceptBlock : t.actions[ActionType.PASS]}
               </Button>
+            </div>
             </div>
           </BottomSheet>
         )}

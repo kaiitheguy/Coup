@@ -121,6 +121,7 @@ export interface I18nSchema {
     actionRequired: string;
     loseCard: string;
     returnTwoCards: string;
+    yourInfluence: string;
     mustCoup: string;
     playAgain: string;
     playAgainHostOnly: string;

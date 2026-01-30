@@ -88,6 +88,8 @@ export interface GameState {
   deferredExchangeSourceId?: string | null; // After challenger loses card on Exchange challenge fail, do exchange for this player
   /** During CHALLENGE_WINDOW: ids of players who have passed (action proceeds only when all other alive have passed) */
   passedResponderIds?: string[];
+  /** After blocker loses 1 for lying, this victim must lose 1 next (e.g. assassinate target); chain LOSE_CARD */
+  deferredLoseCardVictimId?: string | null;
 }
 
 export interface I18nSchema {

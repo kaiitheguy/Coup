@@ -88,7 +88,7 @@ export const PlayerCard: React.FC<PlayerCardProps> = ({
           ))
         )}
         {player.lostCards.map((card, idx) => (
-          <span key={`lost-${idx}`} className="opacity-70 line-through">
+          <span key={`lost-${idx}`} className={isMe ? 'inline-block grayscale opacity-60 line-through' : 'inline-block grayscale opacity-50 line-through'}>
             <RoleChip role={card} label={t.roles[card]} size="sm" />
           </span>
         ))}

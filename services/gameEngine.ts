@@ -46,6 +46,7 @@ const nextTurn = (state: GameState): GameState => {
     exchangePlayerId: null,
     exchangeDrawnCards: undefined,
     deferredExchangeSourceId: null,
+    deferredLoseCardVictimId: null,
     passedResponderIds: undefined,
   };
 };
@@ -265,7 +266,7 @@ export const applyAction = (
 
         if (pa.type === ActionType.STEAL && pa.targetId) {
           const target = state.players.find((p) => p.id === pa.targetId)!;
-          const amount = Math.min(2, target.coins);
+          const amount = Math.min(2, Math.max(0, target.coins)); // steal at most 2, never more than target has
           const updatedPlayers = state.players.map((p) => {
             if (p.id === pa.sourceId) return { ...p, coins: p.coins + amount };
             if (p.id === pa.targetId) return { ...p, coins: p.coins - amount };
@@ -486,31 +487,34 @@ export const applyAction = (
           };
         }
 
-        // Block fails; apply original action
+        // Block fails; blocker loses 1 for lying, then original action effect applies
         let updatedPlayers = [...state.players];
         if (pa.type === ActionType.FOREIGN_AID) {
           updatedPlayers = updatedPlayers.map((p) =>
             p.id === pa.sourceId ? { ...p, coins: p.coins + 2 } : p
           );
         }
-        if (pa.type === ActionType.ASSASSINATE && pa.targetId) {
-          return {
-            ...state,
-            players: updatedPlayers,
-            phase: Phase.LOSE_CARD,
-            victimId: pa.targetId,
-            pendingAction: null,
-            logs: [...state.logs, startedLog, { type: 'challenge_success', challengerId, challengedId, claimedRole }],
-          };
-        }
         if (pa.type === ActionType.STEAL && pa.targetId) {
           const target = state.players.find((p) => p.id === pa.targetId)!;
-          const amount = Math.min(2, target.coins);
+          const amount = Math.min(2, Math.max(0, target.coins)); // steal at most 2, never more than target has
           updatedPlayers = updatedPlayers.map((p) => {
             if (p.id === pa.sourceId) return { ...p, coins: p.coins + amount };
             if (p.id === pa.targetId) return { ...p, coins: p.coins - amount };
             return p;
           });
+        }
+        // ASSASSINATE: blocker loses 1 now; target must lose 1 next (deferred) — never fall through
+        if (pa.type === ActionType.ASSASSINATE) {
+          const assassinateTargetId = pa.targetId ?? pa.blockedBy!;
+          return {
+            ...state,
+            players: updatedPlayers,
+            phase: Phase.LOSE_CARD,
+            victimId: pa.blockedBy!,
+            deferredLoseCardVictimId: assassinateTargetId,
+            pendingAction: null,
+            logs: [...state.logs, startedLog, { type: 'challenge_success', challengerId, challengedId, claimedRole }],
+          };
         }
         return {
           ...state,
@@ -566,6 +570,17 @@ export const applyAction = (
 
       const finalState = checkWinCondition(newState);
       if (finalState.phase === Phase.GAME_OVER) return finalState;
+
+      // Deferred lose card: blocker lost 1 for lying; now target loses 1 (e.g. assassinate) — chain LOSE_CARD
+      if (finalState.deferredLoseCardVictimId) {
+        const nextVictimId = finalState.deferredLoseCardVictimId;
+        return {
+          ...finalState,
+          victimId: nextVictimId,
+          deferredLoseCardVictimId: null,
+          phase: Phase.LOSE_CARD,
+        };
+      }
 
       // Deferred exchange: after challenger lost card on Exchange challenge fail, do exchange now
       if (finalState.deferredExchangeSourceId) {

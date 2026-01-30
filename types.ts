@@ -126,6 +126,8 @@ export interface I18nSchema {
     playAgain: string;
     playAgainHostOnly: string;
     exitGame: string;
+    installApp: string;
+    installAppIOS: string;
   };
   actions: {
     [key in ActionType]: string;

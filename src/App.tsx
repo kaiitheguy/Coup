@@ -37,10 +37,26 @@ function App() {
   const [cardLostToast, setCardLostToast] = useState(false);
   const [showCheatSheet, setShowCheatSheet] = useState(false);
   const [showWaitingAfterPass, setShowWaitingAfterPass] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<{ prompt: () => Promise<{ outcome: string }> } | null>(null);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isIOSStandalone, setIsIOSStandalone] = useState(false);
   const cheatSheetRef = useRef<HTMLDivElement>(null);
   const cheatSheetRefDesktop = useRef<HTMLDivElement>(null);
 
   const isMobile = useIsMobile();
+
+  // PWA install: capture beforeinstallprompt (Chrome/Android); detect iOS for "Add to Home Screen" tip
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as unknown as { prompt: () => Promise<{ outcome: string }> });
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    setIsIOS(ios);
+    setIsIOSStandalone(ios && (window.navigator as { standalone?: boolean }).standalone === true);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
   const t = I18N[lang];
   const gameStateHandlerRef = useRef<((data: { gameState: GameState }) => void) | null>(null);
 
@@ -710,6 +726,21 @@ function App() {
               </div>
             </div>
             <div className="flex items-center gap-2 hidden md:flex">
+              {deferredPrompt && (
+                <button
+                  type="button"
+                  onClick={() => { deferredPrompt.prompt(); }}
+                  className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-bold text-sm px-3 py-2 rounded-xl border border-indigo-200 hover:border-indigo-300 transition active:scale-[0.98]"
+                  aria-label={t.game.installApp}
+                >
+                  {t.game.installApp}
+                </button>
+              )}
+              {isIOS && !isIOSStandalone && (
+                <span className="text-xs text-slate-500 px-2 py-1 rounded border border-slate-200 bg-slate-50" title={t.game.installAppIOS}>
+                  {t.game.installAppIOS}
+                </span>
+              )}
               <div ref={cheatSheetRefDesktop} className="relative">
                 <button
                   type="button"

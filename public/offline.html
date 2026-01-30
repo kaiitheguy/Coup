@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Coup — Offline</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      text-align: center;
+    }
+    .icon {
+      width: 96px;
+      height: 96px;
+      margin-bottom: 1.5rem;
+      border-radius: 20px;
+    }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+    p { font-size: 1rem; opacity: 0.9; max-width: 320px; line-height: 1.5; }
+    .zh { margin-top: 1rem; font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+  <img src="/assets/icon-192.png" alt="" class="icon" width="96" height="96" onerror="this.src='/logo.jpg'" />
+  <h1>Coup</h1>
+  <p>You're offline. Coup needs a connection to play.</p>
+  <p class="zh">你已离线。Coup 需要网络连接才能继续。</p>
+</body>
+</html>

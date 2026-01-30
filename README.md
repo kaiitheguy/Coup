@@ -35,6 +35,21 @@ Multiplayer web implementation of the card game **Coup**. Create a room, share t
 | `npm run dev:all` | Frontend + server concurrently |
 | `npm run build` | Build frontend to `dist/` |
 | `npm run preview` | Preview production build |
+| `npm run icons` | Generate PWA icons from `assets/logo.jpg` → `public/assets/` |
+
+---
+
+## Install as PWA (Progressive Web App)
+
+The app is installable on **iOS**, **Android**, and **desktop Chrome** and runs in standalone display (no browser UI).
+
+- **Chrome / Edge (desktop):** Use the **Install app** button in the game header, or the install icon in the address bar.
+- **Android (Chrome):** Open the site, then **Menu → Install app** or accept the install banner.
+- **iOS (Safari):** Tap **Share** → **Add to Home Screen** → Add. (The in-app tip “Use Share → Add to Home Screen” appears on iOS when not already installed.)
+
+**First-time setup (icons):** After `npm install`, run `npm run icons` once to generate PWA icons (`public/assets/icon-192.png`, `icon-512.png`, `icon-maskable-512.png`) from `assets/logo.jpg`. Commit the generated files if you deploy.
+
+**Offline:** If you open the app without a connection, a branded offline page is shown. Gameplay still requires a connection to the server.
 
 ---
 

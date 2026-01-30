@@ -46,7 +46,9 @@ export const I18N: Record<Language, I18nSchema> = {
       mustCoup: "You must Coup (10+ coins)",
       playAgain: "Play Again",
       playAgainHostOnly: "Play Again (host only)",
-      exitGame: "Exit"
+      exitGame: "Exit",
+      installApp: "Install app",
+      installAppIOS: "Use Share → Add to Home Screen",
     },
     actions: {
       [ActionType.INCOME]: "Income (+1)",
@@ -167,7 +169,9 @@ export const I18N: Record<Language, I18nSchema> = {
       mustCoup: "10枚以上金币必须政变",
       playAgain: "再来一局",
       playAgainHostOnly: "再来一局（仅房主）",
-      exitGame: "退出"
+      exitGame: "退出",
+      installApp: "安装应用",
+      installAppIOS: "使用分享 → 添加到主屏幕",
     },
     actions: {
       [ActionType.INCOME]: "收入 (+1)",

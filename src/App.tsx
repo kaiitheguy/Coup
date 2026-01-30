@@ -3,7 +3,7 @@ import { GameState, Phase, Language, ActionType, Role } from '../types';
 import { I18N, MIN_PLAYERS, MAX_PLAYERS } from '../constants';
 import * as GameEngine from '../services/gameEngine';
 import { getPlayerName, formatLogEntry } from '../utils/gameUtils';
-import { RoleChip } from '../constants/roleMeta';
+import { RoleChip, ROLE_META, getRoleChipClass } from '../constants/roleMeta';
 import { Button } from '../components/Button';
 import { PlayerCard } from '../components/PlayerCard';
 import { GameLog } from '../components/GameLog';
@@ -148,14 +148,42 @@ function App() {
     });
 
     socket.on('room:state', (data) => {
-      setRoomState(data.roomState);
-      if (data.roomState.status === 'in_game' && view === 'room') {
+      const room = data.roomState;
+      if (!myPlayerId) {
+        setRoomState(room);
+        if (room.status === 'in_game') setView('game');
+        return;
+      }
+      const stillInRoom = room.players.some((p: { id: string }) => p.id === myPlayerId);
+      if (!stillInRoom) {
+        sessionStorage.removeItem('roomCode');
+        sessionStorage.removeItem('playerId');
+        sessionStorage.removeItem('playerName');
+        setRoomState(null);
+        setGameState(null);
+        setView('landing');
+        setMyPlayerId('');
+        setError('');
+        return;
+      }
+      setRoomState(room);
+      if (room.status === 'in_game' && view === 'room') {
         setView('game');
       }
     });
 
     socket.on('error', (data) => {
-      setError(data.message);
+      const msg = data.message || '';
+      if (msg.includes('Room not found') || msg.includes('Player not found') || msg.includes('not in room')) {
+        sessionStorage.removeItem('roomCode');
+        sessionStorage.removeItem('playerId');
+        sessionStorage.removeItem('playerName');
+        setRoomState(null);
+        setGameState(null);
+        setView('landing');
+        setMyPlayerId('');
+      }
+      setError(msg);
     });
 
     return () => {
@@ -166,7 +194,7 @@ function App() {
       socket.off('room:state');
       socket.off('error');
     };
-  }, [playerName, view]);
+  }, [playerName, view, myPlayerId]);
 
   const handleCreateRoom = () => {
     if (!playerName.trim()) {
@@ -217,9 +245,26 @@ function App() {
     sessionStorage.removeItem('roomCode');
     sessionStorage.removeItem('playerId');
     sessionStorage.removeItem('playerName');
-    setView('landing');
     setRoomState(null);
     setGameState(null);
+    setView('landing');
+    setMyPlayerId('');
+    setError('');
+  };
+
+  const handleLeaveRoom = () => {
+    const roomCode = sessionStorage.getItem('roomCode');
+    const socket = getSocket();
+    if (socket && roomCode && myPlayerId) {
+      socket.emit('leaveRoom', { roomCode, playerId: myPlayerId });
+    }
+    sessionStorage.removeItem('roomCode');
+    sessionStorage.removeItem('playerId');
+    sessionStorage.removeItem('playerName');
+    setRoomState(null);
+    setGameState(null);
+    setView('landing');
+    setMyPlayerId('');
     setError('');
   };
 
@@ -402,9 +447,15 @@ function App() {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
         <div
-          className="absolute right-4 md:top-4"
+          className="absolute right-4 md:top-4 flex items-center gap-2"
           style={{ top: 'max(calc(env(safe-area-inset-top, 0px) + 16px), 44px)' }}
         >
+          <button
+            onClick={handleLeaveRoom}
+            className="flex items-center gap-2 bg-white px-3 py-2 rounded-full shadow text-sm font-bold text-slate-500 hover:text-red-600 border border-slate-200 hover:border-red-200 transition md:min-h-11"
+          >
+            {t.lobby.leaveRoom}
+          </button>
           <button
             onClick={toggleLang}
             className="flex items-center gap-2 bg-white px-3 py-2 rounded-full shadow text-sm font-bold text-slate-700 md:min-h-11"
@@ -659,6 +710,34 @@ function App() {
                   ...Object.values(t.roles),
                 ]}
               />
+              {/* Role Cheat Sheet — compact help under log, scrollable + role colors */}
+              <div className="mt-4 pt-3 border-t border-slate-100">
+                <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">
+                  {t.cheatsheet.title}
+                </div>
+                <div className="max-h-32 overflow-y-auto overflow-x-hidden overscroll-contain rounded-xl no-scrollbar pr-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {[Role.DUKE, Role.ASSASSIN, Role.CAPTAIN, Role.AMBASSADOR, Role.CONTESSA].map((role) => {
+                      const { icon: Icon } = ROLE_META[role];
+                      const roleClass = getRoleChipClass(role);
+                      return (
+                        <div
+                          key={role}
+                          className={`flex items-start gap-2 rounded-lg px-2.5 py-1.5 border ${roleClass}`}
+                        >
+                          <span className="flex-shrink-0 mt-0.5 opacity-90">
+                            <Icon size={14} strokeWidth={2} />
+                          </span>
+                          <div className="min-w-0">
+                            <span className="text-xs font-semibold">{t.roles[role]}</span>
+                            <span className="text-[11px] opacity-90 ml-1.5">— {t.cheatsheet[role]}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1097,7 +1176,7 @@ function App() {
                     onClick={() => {
                       const newState = GameEngine.applyAction(gameState, {
                         type: 'PASS',
-                        payload: {},
+                        payload: { playerId: myPlayerId },
                       });
                       setGameState(newState);
                       const roomCode = sessionStorage.getItem('roomCode');
@@ -1138,7 +1217,7 @@ function App() {
                       onClick={() => {
                         const newState = GameEngine.applyAction(gameState, {
                           type: 'PASS',
-                          payload: {},
+                          payload: { playerId: myPlayerId },
                         });
                         setGameState(newState);
                         const roomCode = sessionStorage.getItem('roomCode');
@@ -1307,7 +1386,7 @@ function App() {
                   fullWidth
                   className="min-h-[48px]"
                   onClick={() => {
-                    const newState = GameEngine.applyAction(gameState, { type: 'PASS', payload: {} });
+                    const newState = GameEngine.applyAction(gameState, { type: 'PASS', payload: { playerId: myPlayerId } });
                     setGameState(newState);
                     const roomCode = sessionStorage.getItem('roomCode');
                     if (roomCode) emitGameState(roomCode, newState as unknown as Record<string, unknown>);
@@ -1344,7 +1423,7 @@ function App() {
                 fullWidth
                 className="min-h-[48px]"
                 onClick={() => {
-                  const newState = GameEngine.applyAction(gameState, { type: 'PASS', payload: {} });
+                  const newState = GameEngine.applyAction(gameState, { type: 'PASS', payload: { playerId: myPlayerId } });
                   setGameState(newState);
                   const roomCode = sessionStorage.getItem('roomCode');
                   if (roomCode) emitGameState(roomCode, newState as unknown as Record<string, unknown>);

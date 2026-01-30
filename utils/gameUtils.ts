@@ -84,11 +84,23 @@ export function formatLogEntry(
       return applyTemplate(t.log.exchange_start, { actor: name(entry.actorId) });
     case 'exchange_done':
       return applyTemplate(t.log.exchange_done, { actor: name(entry.actorId) });
+    case 'challenge_started':
+      return applyTemplate(t.log.challenge_started, {
+        challenger: name(entry.challengerId),
+        challenged: name(entry.challengedId),
+        role: roleLabel(entry.claimedRole),
+      });
+    case 'challenge_success':
+      return applyTemplate(t.log.challenge_success, {
+        challenger: name(entry.challengerId),
+        challenged: name(entry.challengedId),
+        role: roleLabel(entry.claimedRole),
+      });
     case 'challenge_fail':
       return applyTemplate(t.log.challenge_fail, {
-        actor: name(entry.actorId),
-        role: roleLabel(entry.role),
-        loser: name(entry.loserId),
+        challenger: name(entry.challengerId),
+        challenged: name(entry.challengedId),
+        role: roleLabel(entry.claimedRole),
       });
     case 'challenge_success_actor':
       if (entry.loserId) {

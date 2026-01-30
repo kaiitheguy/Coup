@@ -295,24 +295,51 @@ io.on('connection', (socket) => {
     console.log(`Game restarted in room ${roomCode}`);
   });
 
-  // Leave room: mark disconnected, socket.leave; reassign host if waiting
+  // In-game leave: mark disconnected only (keeps seat for reconnect)
   socket.on('room:leave', (data: { roomCode: string; playerId: string }) => {
     const { roomCode, playerId } = data;
     const room = rooms.get(roomCode);
-    if (!room) return;
+    if (!room || room.status !== 'in_game') return;
 
     const player = room.players.find(p => p.id === playerId);
     if (player) {
       player.connected = false;
       socket.leave(roomCode);
       socketToPlayer.delete(socket.id);
-      if (room.status === 'waiting' && room.hostId === player.id) {
-        reassignHostIfNeeded(roomCode);
-      } else {
-        broadcastRoomState(roomCode);
-      }
-      console.log(`Player left: ${player.name} from room ${roomCode}`);
+      broadcastRoomState(roomCode);
+      console.log(`Player left (in-game): ${player.name} from room ${roomCode}`);
     }
+  });
+
+  // Lobby leave: remove player from room; reassign host or delete room
+  socket.on('leaveRoom', (data: { roomCode: string; playerId: string }) => {
+    const { roomCode, playerId } = data;
+    const room = rooms.get(roomCode);
+    if (!room) return;
+
+    if (room.status === 'in_game') return;
+
+    const player = room.players.find(p => p.id === playerId);
+    if (!player) return;
+
+    const wasHost = room.hostId === playerId;
+    room.players = room.players.filter(p => p.id !== playerId);
+    socket.leave(roomCode);
+    socketToPlayer.delete(socket.id);
+    console.log(`Player left lobby: ${player.name} from room ${roomCode}`);
+
+    if (room.players.length === 0) {
+      rooms.delete(roomCode);
+      gameStates.delete(roomCode);
+      console.log(`Room ${roomCode} deleted (no players left)`);
+      return;
+    }
+
+    if (wasHost) {
+      const connectedPlayers = room.players.filter(p => p.connected).sort((a, b) => a.joinedAt - b.joinedAt);
+      room.hostId = connectedPlayers.length > 0 ? connectedPlayers[0].id : room.players[0].id;
+    }
+    broadcastRoomState(roomCode);
   });
 
   // Handle disconnect
@@ -327,14 +354,30 @@ io.on('connection', (socket) => {
     if (!room) return;
 
     const player = room.players.find(p => p.id === playerId);
-    if (player) {
+    if (!player) return;
+
+    if (room.status === 'waiting') {
+      // Lobby: treat like leaveRoom — remove player, reassign host, delete if empty
+      const wasHost = room.hostId === playerId;
+      room.players = room.players.filter(p => p.id !== playerId);
+      console.log(`Player disconnected (lobby): ${player.name} from room ${roomCode}`);
+
+      if (room.players.length === 0) {
+        rooms.delete(roomCode);
+        gameStates.delete(roomCode);
+        console.log(`Room ${roomCode} deleted (no players left)`);
+        return;
+      }
+      if (wasHost) {
+        const connectedPlayers = room.players.filter(p => p.connected).sort((a, b) => a.joinedAt - b.joinedAt);
+        room.hostId = connectedPlayers.length > 0 ? connectedPlayers[0].id : room.players[0].id;
+      }
+      broadcastRoomState(roomCode);
+    } else {
+      // In-game: keep player in room, mark disconnected (reconnect allowed)
       player.connected = false;
       console.log(`Player disconnected: ${player.name} from room ${roomCode}`);
-
-      if (room.status === 'waiting' && room.hostId === player.id) {
-        reassignHostIfNeeded(roomCode);
-      }
-
+      if (room.hostId === playerId) reassignHostIfNeeded(roomCode);
       broadcastRoomState(roomCode);
     }
   });

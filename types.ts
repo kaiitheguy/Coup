@@ -64,7 +64,9 @@ export type LogEntry =
   | { type: 'foreign_aid_success'; actorId: string }
   | { type: 'exchange_start'; actorId: string }
   | { type: 'exchange_done'; actorId: string }
-  | { type: 'challenge_fail'; actorId: string; role: Role; loserId: string }
+  | { type: 'challenge_started'; challengerId: string; challengedId: string; claimedRole: Role }
+  | { type: 'challenge_success'; challengerId: string; challengedId: string; claimedRole: Role }
+  | { type: 'challenge_fail'; challengerId: string; challengedId: string; claimedRole: Role; loserId: string }
   | { type: 'challenge_success_actor'; actorId: string; loserId?: string }
   | { type: 'challenge_success_block'; blockerId: string; message: 'assassinate' | 'action' }
   | { type: 'assassinate_victim'; targetId: string };
@@ -84,6 +86,8 @@ export interface GameState {
   exchangePlayerId?: string | null; // During EXCHANGE_SELECT: player choosing cards to return
   exchangeDrawnCards?: Role[]; // Cards drawn for exchange (player has original + these, must return 2)
   deferredExchangeSourceId?: string | null; // After challenger loses card on Exchange challenge fail, do exchange for this player
+  /** During CHALLENGE_WINDOW: ids of players who have passed (action proceeds only when all other alive have passed) */
+  passedResponderIds?: string[];
 }
 
 export interface I18nSchema {
@@ -100,6 +104,7 @@ export interface I18nSchema {
     needPlayers: string;
     players: string;
     host: string;
+    leaveRoom: string;
   };
   game: {
     round: string;
@@ -124,6 +129,14 @@ export interface I18nSchema {
   };
   roles: {
     [key in Role]: string;
+  };
+  cheatsheet: {
+    title: string;
+    duke: string;
+    assassin: string;
+    captain: string;
+    ambassador: string;
+    contessa: string;
   };
   status: {
     waiting: string;
@@ -173,6 +186,8 @@ export interface I18nSchema {
     foreign_aid_success: string;
     exchange_start: string;
     exchange_done: string;
+    challenge_started: string;
+    challenge_success: string;
     challenge_fail: string;
     challenge_success_actor: string;
     challenge_success_actor_loser: string;

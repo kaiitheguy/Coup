@@ -26,7 +26,8 @@ export const I18N: Record<Language, I18nSchema> = {
       startGame: "Start Game",
       needPlayers: "Need at least 2 players",
       players: "Players",
-      host: "HOST"
+      host: "HOST",
+      leaveRoom: "Leave Room"
     },
     game: {
       round: "Round",
@@ -66,6 +67,14 @@ export const I18N: Record<Language, I18nSchema> = {
       [Role.CAPTAIN]: "Captain",
       [Role.AMBASSADOR]: "Ambassador",
       [Role.CONTESSA]: "Contessa"
+    },
+    cheatsheet: {
+      title: "Role cheat sheet",
+      duke: "Tax (+3); Blocks Foreign Aid",
+      assassin: "Assassinate (pay 3)",
+      captain: "Steal 2; Blocks Steal",
+      ambassador: "Exchange; Blocks Steal",
+      contessa: "Blocks Assassination",
     },
     status: {
       waiting: "Waiting for action...",
@@ -112,7 +121,9 @@ export const I18N: Record<Language, I18nSchema> = {
       foreign_aid_success: "{actor} used Foreign Aid.",
       exchange_start: "{actor} exchanges. Choose 2 cards to return.",
       exchange_done: "{actor} completed exchange.",
-      challenge_fail: "Challenge failed! {actor} had {role}. {loser} loses influence.",
+      challenge_started: "{challenger} challenges {challenged}'s {role}.",
+      challenge_success: "Challenge successful — {challenged} did not have {role}. {challenger} wins the challenge.",
+      challenge_fail: "Challenge failed — {challenged} reveals {role} and draws a replacement. {challenger} loses 1 influence.",
       challenge_success_actor: "Challenge successful! {actor} did not have the role.",
       challenge_success_actor_loser: "Challenge successful! {actor} did not have the role. {loser} loses influence.",
       challenge_success_block_assassinate: "Challenge successful! {blocker} lied. Assassinate succeeds.",
@@ -134,7 +145,8 @@ export const I18N: Record<Language, I18nSchema> = {
       startGame: "开始游戏",
       needPlayers: "至少需要2名玩家",
       players: "玩家列表",
-      host: "房主"
+      host: "房主",
+      leaveRoom: "离开房间"
     },
     game: {
       round: "回合",
@@ -174,6 +186,14 @@ export const I18N: Record<Language, I18nSchema> = {
       [Role.CAPTAIN]: "队长",
       [Role.AMBASSADOR]: "大使",
       [Role.CONTESSA]: "伯爵夫人"
+    },
+    cheatsheet: {
+      title: "角色速查",
+      duke: "税收 (+3)；阻挡外援",
+      assassin: "暗杀 (付3)",
+      captain: "偷窃 2；阻挡偷窃",
+      ambassador: "交换；阻挡偷窃",
+      contessa: "阻挡暗杀",
     },
     status: {
       waiting: "等待行动...",
@@ -220,7 +240,9 @@ export const I18N: Record<Language, I18nSchema> = {
       foreign_aid_success: "{actor} 使用了外援。",
       exchange_start: "{actor} 交换手牌。请选择2张牌放回。",
       exchange_done: "{actor} 完成交换。",
-      challenge_fail: "质疑失败！{actor} 拥有 {role}。{loser} 失去影响力。",
+      challenge_started: "{challenger} 质疑 {challenged} 的{role}。",
+      challenge_success: "质疑成功——{challenged} 并没有{role}。{challenger} 质疑成立。",
+      challenge_fail: "质疑失败——{challenged} 亮出{role}并换牌。{challenger} 失去1点影响力。",
       challenge_success_actor: "质疑成功！{actor} 没有该角色。",
       challenge_success_actor_loser: "质疑成功！{actor} 没有该角色。{loser} 失去影响力。",
       challenge_success_block_assassinate: "质疑成功！{blocker} 撒谎。暗杀生效。",

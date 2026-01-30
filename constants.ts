@@ -78,6 +78,7 @@ export const I18N: Record<Language, I18nSchema> = {
     },
     status: {
       waiting: "Waiting for action...",
+      waitingForOthers: "Waiting for others to decide...",
       challenging: "Challenge or Block",
       blocking: "Challenge block or Pass",
       resolving: "Resolving...",
@@ -197,6 +198,7 @@ export const I18N: Record<Language, I18nSchema> = {
     },
     status: {
       waiting: "等待行动...",
+      waitingForOthers: "等待别人决定...",
       challenging: "质疑或阻挡",
       blocking: "质疑阻挡或过",
       resolving: "结算中...",

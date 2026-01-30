@@ -8,7 +8,7 @@ import { Button } from '../components/Button';
 import { PlayerCard } from '../components/PlayerCard';
 import { GameLog } from '../components/GameLog';
 import { Logo } from './components/Logo';
-import { Crown, Copy, Users, Globe, BadgeCheck, Wallet, Coins, Landmark, Hand, Swords, Zap, RefreshCw } from 'lucide-react';
+import { Crown, Copy, Users, Globe, BadgeCheck, Wallet, Coins, Landmark, Hand, Swords, Zap, RefreshCw, BookOpen } from 'lucide-react';
 import { connectSocket, getSocket, emitGameState, RoomState, Player as SocketPlayer } from './net/socket';
 import { useIsMobile } from './hooks/useMediaQuery';
 import { BottomSheet } from '../components/BottomSheet';
@@ -35,6 +35,9 @@ function App() {
   } | null>(null);
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
   const [cardLostToast, setCardLostToast] = useState(false);
+  const [showCheatSheet, setShowCheatSheet] = useState(false);
+  const cheatSheetRef = useRef<HTMLDivElement>(null);
+  const cheatSheetRefDesktop = useRef<HTMLDivElement>(null);
 
   const isMobile = useIsMobile();
   const t = I18N[lang];
@@ -92,6 +95,18 @@ function App() {
       }
     };
   }, [view]);
+
+  useEffect(() => {
+    if (!showCheatSheet) return;
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const inMobile = cheatSheetRef.current?.contains(target);
+      const inDesktop = cheatSheetRefDesktop.current?.contains(target);
+      if (!inMobile && !inDesktop) setShowCheatSheet(false);
+    };
+    document.addEventListener('click', handleClick, true);
+    return () => document.removeEventListener('click', handleClick, true);
+  }, [showCheatSheet]);
 
   // Initialize socket and check for existing session (reconnect only; never auto create/join)
   useEffect(() => {
@@ -592,6 +607,43 @@ function App() {
         >
           <Logo size={28} withText />
           <div className="flex items-center gap-1">
+            <div ref={cheatSheetRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setShowCheatSheet((s) => !s)}
+                className="min-h-11 min-w-11 flex items-center justify-center text-sm font-bold bg-slate-100 rounded-xl px-3 py-2.5 touch-manipulation transition active:scale-[0.98]"
+                aria-label={t.cheatsheet.title}
+              >
+                <BookOpen size={20} className="text-slate-600" />
+              </button>
+              {showCheatSheet && (
+                <div className="absolute right-0 top-full mt-1 z-50 w-[280px] max-h-[70vh] overflow-y-auto bg-white rounded-xl border border-slate-200 shadow-lg py-2 no-scrollbar">
+                  <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-3 mb-2">
+                    {t.cheatsheet.title}
+                  </div>
+                  <div className="grid grid-cols-1 gap-1.5 px-2">
+                    {[Role.DUKE, Role.ASSASSIN, Role.CAPTAIN, Role.AMBASSADOR, Role.CONTESSA].map((role) => {
+                      const { icon: Icon } = ROLE_META[role];
+                      const roleClass = getRoleChipClass(role);
+                      return (
+                        <div
+                          key={role}
+                          className={`flex items-start gap-2 rounded-lg px-2.5 py-1.5 border ${roleClass}`}
+                        >
+                          <span className="flex-shrink-0 mt-0.5 opacity-90">
+                            <Icon size={14} strokeWidth={2} />
+                          </span>
+                          <div className="min-w-0">
+                            <span className="text-xs font-semibold">{t.roles[role]}</span>
+                            <span className="text-[11px] opacity-90 ml-1.5">— {t.cheatsheet[role]}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
             <button
               type="button"
               onClick={toggleLang}
@@ -646,13 +698,50 @@ function App() {
               )}
               <div className="text-sm text-slate-500 mt-3">
                 {gameState.phase === Phase.ACTION_SELECTION && t.status.waiting}
-                {gameState.phase === Phase.CHALLENGE_WINDOW && t.status.challenging}
-                {gameState.phase === Phase.BLOCK_RESPONSE && t.status.blocking}
+                {gameState.phase === Phase.CHALLENGE_WINDOW && (myPlayer?.isAlive ? t.status.challenging : t.status.waitingForOthers)}
+                {gameState.phase === Phase.BLOCK_RESPONSE && (myPlayer?.isAlive ? (gameState.pendingAction?.sourceId === myPlayerId ? t.status.blocking : t.status.waitingForOthers) : t.status.waitingForOthers)}
                 {gameState.phase === Phase.LOSE_CARD && (gameState.victimId === myPlayerId ? t.game.loseCard : `Waiting for ${getName(gameState.victimId ?? '')} to choose a card.`)}
                 {gameState.phase === Phase.EXCHANGE_SELECT && (gameState.exchangePlayerId === myPlayerId ? t.status.exchangeSelect : `Waiting for ${getName(gameState.exchangePlayerId ?? '')} to choose 2 cards.`)}
               </div>
             </div>
             <div className="flex items-center gap-2 hidden md:flex">
+              <div ref={cheatSheetRefDesktop} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowCheatSheet((s) => !s)}
+                  className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold text-sm px-3 py-2 rounded-xl border border-slate-200 transition active:scale-[0.98]"
+                  aria-label={t.cheatsheet.title}
+                >
+                  <BookOpen size={16} /> {t.cheatsheet.title}
+                </button>
+                {showCheatSheet && (
+                  <div className="absolute right-0 top-full mt-1 z-50 w-[280px] max-h-[70vh] overflow-y-auto bg-white rounded-xl border border-slate-200 shadow-lg py-2 no-scrollbar">
+                    <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide px-3 mb-2">
+                      {t.cheatsheet.title}
+                    </div>
+                    <div className="grid grid-cols-1 gap-1.5 px-2">
+                      {[Role.DUKE, Role.ASSASSIN, Role.CAPTAIN, Role.AMBASSADOR, Role.CONTESSA].map((role) => {
+                        const { icon: Icon } = ROLE_META[role];
+                        const roleClass = getRoleChipClass(role);
+                        return (
+                          <div
+                            key={role}
+                            className={`flex items-start gap-2 rounded-lg px-2.5 py-1.5 border ${roleClass}`}
+                          >
+                            <span className="flex-shrink-0 mt-0.5 opacity-90">
+                              <Icon size={14} strokeWidth={2} />
+                            </span>
+                            <div className="min-w-0">
+                              <span className="text-xs font-semibold">{t.roles[role]}</span>
+                              <span className="text-[11px] opacity-90 ml-1.5">— {t.cheatsheet[role]}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
               <button
                 onClick={handleExitGame}
                 className="flex items-center gap-2 text-slate-500 hover:text-red-600 font-bold text-sm px-3 py-2 rounded-xl border border-slate-200 hover:border-red-200 transition active:scale-[0.98]"
@@ -695,48 +784,22 @@ function App() {
             </div>
           )}
 
-          {/* LOGS */}
-          <div className="flex-1 p-4 overflow-hidden relative">
+          {/* LOGS — flex so log area scrolls correctly */}
+          <div className="flex-1 p-4 overflow-hidden relative flex flex-col min-h-0">
             <div
-              className={`absolute inset-4 md:pb-4 ${
+              className={`absolute inset-4 md:pb-4 flex flex-col overflow-hidden ${
                 isMobile && isMyTurn && gameState.phase === Phase.ACTION_SELECTION && !targetSelection ? 'pb-[180px]' : 'pb-24'
               }`}
             >
-              <GameLog
-                logs={formattedLogs}
-                lang={lang}
-                boldNames={[
-                  ...gameState.players.map((p) => p.name),
-                  ...Object.values(t.roles),
-                ]}
-              />
-              {/* Role Cheat Sheet — compact help under log, scrollable + role colors */}
-              <div className="mt-4 pt-3 border-t border-slate-100">
-                <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">
-                  {t.cheatsheet.title}
-                </div>
-                <div className="max-h-32 overflow-y-auto overflow-x-hidden overscroll-contain rounded-xl no-scrollbar pr-1">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {[Role.DUKE, Role.ASSASSIN, Role.CAPTAIN, Role.AMBASSADOR, Role.CONTESSA].map((role) => {
-                      const { icon: Icon } = ROLE_META[role];
-                      const roleClass = getRoleChipClass(role);
-                      return (
-                        <div
-                          key={role}
-                          className={`flex items-start gap-2 rounded-lg px-2.5 py-1.5 border ${roleClass}`}
-                        >
-                          <span className="flex-shrink-0 mt-0.5 opacity-90">
-                            <Icon size={14} strokeWidth={2} />
-                          </span>
-                          <div className="min-w-0">
-                            <span className="text-xs font-semibold">{t.roles[role]}</span>
-                            <span className="text-[11px] opacity-90 ml-1.5">— {t.cheatsheet[role]}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <GameLog
+                  logs={formattedLogs}
+                  lang={lang}
+                  boldNames={[
+                    ...gameState.players.map((p) => p.name),
+                    ...Object.values(t.roles),
+                  ]}
+                />
               </div>
             </div>
           </div>
@@ -1068,7 +1131,8 @@ function App() {
 
             {/* Action: Challenge / Block (Others) — desktop; mobile uses prompt sheet */}
             {gameState.phase === Phase.CHALLENGE_WINDOW &&
-              gameState.pendingAction?.sourceId !== myPlayerId && (
+              gameState.pendingAction?.sourceId !== myPlayerId &&
+              myPlayer?.isAlive && (
                 <div className="flex flex-wrap gap-2 items-center hidden sm:flex">
                   <div className="w-full text-sm font-bold text-slate-500">
                     {getName(gameState.pendingAction?.sourceId ?? '')} uses{' '}
@@ -1188,12 +1252,15 @@ function App() {
                 </div>
               )}
 
-            {/* Action: Respond to Block (Original Actor) — desktop; mobile uses sheet */}
+            {/* Action: Respond to Block — anyone except blocker can challenge; only actor can pass — desktop */}
             {gameState.phase === Phase.BLOCK_RESPONSE &&
-              gameState.pendingAction?.sourceId === myPlayerId && (
+              gameState.pendingAction?.blockedBy !== myPlayerId &&
+              myPlayer?.isAlive && (
                 <div className="space-y-2 hidden sm:block">
                   <p className="text-slate-600 text-sm text-center">
-                    {getName(gameState.pendingAction.blockedBy ?? '')} blocked your action!
+                    {gameState.pendingAction?.sourceId === myPlayerId
+                      ? `${getName(gameState.pendingAction.blockedBy ?? '')} ${t.prompt.blockedYourAction}`
+                      : `${getName(gameState.pendingAction?.blockedBy ?? '')} blocked. ${t.status.waitingForOthers}`}
                   </p>
                   <div className="flex gap-2">
                     <Button
@@ -1209,23 +1276,25 @@ function App() {
                         if (roomCode) emitGameState(roomCode, newState as unknown as Record<string, unknown>);
                       }}
                     >
-                      {t.actions[ActionType.CHALLENGE]} (Claim they lie)
+                      {t.actions[ActionType.CHALLENGE]} {gameState.pendingAction?.sourceId === myPlayerId ? `(${t.prompt.claimTheyLie})` : ''}
                     </Button>
-                    <Button
-                      variant="secondary"
-                      fullWidth
-                      onClick={() => {
-                        const newState = GameEngine.applyAction(gameState, {
-                          type: 'PASS',
-                          payload: { playerId: myPlayerId },
-                        });
-                        setGameState(newState);
-                        const roomCode = sessionStorage.getItem('roomCode');
-                        if (roomCode) emitGameState(roomCode, newState as unknown as Record<string, unknown>);
-                      }}
-                    >
-                      {t.actions[ActionType.PASS]} (Accept Block)
-                    </Button>
+                    {gameState.pendingAction?.sourceId === myPlayerId && (
+                      <Button
+                        variant="secondary"
+                        fullWidth
+                        onClick={() => {
+                          const newState = GameEngine.applyAction(gameState, {
+                            type: 'PASS',
+                            payload: { playerId: myPlayerId },
+                          });
+                          setGameState(newState);
+                          const roomCode = sessionStorage.getItem('roomCode');
+                          if (roomCode) emitGameState(roomCode, newState as unknown as Record<string, unknown>);
+                        }}
+                      >
+                        {t.actions[ActionType.PASS]} ({t.prompt.acceptBlock})
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}
@@ -1298,7 +1367,7 @@ function App() {
           </BottomSheet>
         )}
 
-        {isMobile && gameState.phase === Phase.CHALLENGE_WINDOW && gameState.pendingAction?.sourceId !== myPlayerId && (
+        {isMobile && gameState.phase === Phase.CHALLENGE_WINDOW && gameState.pendingAction?.sourceId !== myPlayerId && myPlayer?.isAlive && (
           <BottomSheet open title={t.prompt.respond} urgency={t.prompt.respond}>
             <div className="space-y-4">
               <p className="text-slate-700 font-medium">
@@ -1399,10 +1468,12 @@ function App() {
           </BottomSheet>
         )}
 
-        {isMobile && gameState.phase === Phase.BLOCK_RESPONSE && gameState.pendingAction?.sourceId === myPlayerId && (
+        {isMobile && gameState.phase === Phase.BLOCK_RESPONSE && gameState.pendingAction?.blockedBy !== myPlayerId && myPlayer?.isAlive && (
           <BottomSheet open title={t.prompt.respond} urgency={t.prompt.respond}>
             <p className="text-slate-700 font-medium mb-4">
-              <span className="font-bold">{getName(gameState.pendingAction?.blockedBy ?? '')}</span> {t.prompt.blockedYourAction}
+              {gameState.pendingAction?.sourceId === myPlayerId
+                ? <><span className="font-bold">{getName(gameState.pendingAction?.blockedBy ?? '')}</span> {t.prompt.blockedYourAction}</>
+                : <><span className="font-bold">{getName(gameState.pendingAction?.blockedBy ?? '')}</span> blocked. {t.status.waitingForOthers}</>}
             </p>
             <div className="flex flex-col gap-2">
               <Button
@@ -1418,19 +1489,21 @@ function App() {
               >
                 {t.prompt.claimTheyLie}
               </Button>
-              <Button
-                variant="secondary"
-                fullWidth
-                className="min-h-[48px]"
-                onClick={() => {
-                  const newState = GameEngine.applyAction(gameState, { type: 'PASS', payload: { playerId: myPlayerId } });
-                  setGameState(newState);
-                  const roomCode = sessionStorage.getItem('roomCode');
-                  if (roomCode) emitGameState(roomCode, newState as unknown as Record<string, unknown>);
-                }}
-              >
-                {t.prompt.acceptBlock}
-              </Button>
+              {gameState.pendingAction?.sourceId === myPlayerId && (
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  className="min-h-[48px]"
+                  onClick={() => {
+                    const newState = GameEngine.applyAction(gameState, { type: 'PASS', payload: { playerId: myPlayerId } });
+                    setGameState(newState);
+                    const roomCode = sessionStorage.getItem('roomCode');
+                    if (roomCode) emitGameState(roomCode, newState as unknown as Record<string, unknown>);
+                  }}
+                >
+                  {t.prompt.acceptBlock}
+                </Button>
+              )}
             </div>
           </BottomSheet>
         )}

@@ -140,6 +140,7 @@ export interface I18nSchema {
   };
   status: {
     waiting: string;
+    waitingForOthers: string;
     challenging: string;
     blocking: string;
     resolving: string;

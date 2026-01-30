@@ -703,8 +703,8 @@ function App() {
               )}
               <div className="text-sm text-slate-500 mt-3">
                 {gameState.phase === Phase.ACTION_SELECTION && t.status.waiting}
-                {gameState.phase === Phase.CHALLENGE_WINDOW && (showWaitingAfterPass || !myPlayer?.isAlive ? t.status.waitingForOthers : t.status.challenging)}
-                {gameState.phase === Phase.BLOCK_RESPONSE && (myPlayer?.isAlive ? (gameState.pendingAction?.sourceId === myPlayerId ? t.status.blocking : t.status.waitingForOthers) : t.status.waitingForOthers)}
+                {gameState.phase === Phase.CHALLENGE_WINDOW && (showWaitingAfterPass || !myPlayer?.isAlive || gameState.passedResponderIds?.includes(myPlayerId) ? t.status.waitingForOthers : t.status.challenging)}
+                {gameState.phase === Phase.BLOCK_RESPONSE && (myPlayer?.isAlive ? (gameState.pendingAction?.blockedBy === myPlayerId ? t.status.blocking : (gameState.passedResponderIds?.includes(myPlayerId) ? t.status.waitingForOthers : t.status.blocking)) : t.status.waitingForOthers)}
                 {gameState.phase === Phase.LOSE_CARD && (gameState.victimId === myPlayerId ? t.game.loseCard : `Waiting for ${getName(gameState.victimId ?? '')} to choose a card.`)}
                 {gameState.phase === Phase.EXCHANGE_SELECT && (gameState.exchangePlayerId === myPlayerId ? t.status.exchangeSelect : `Waiting for ${getName(gameState.exchangePlayerId ?? '')} to choose 2 cards.`)}
               </div>
@@ -1134,10 +1134,12 @@ function App() {
               </div>
             )}
 
-            {/* Action: Challenge / Block (Others) — desktop; mobile uses prompt sheet */}
+            {/* Action: Challenge / Block (Others) — desktop; hide when already passed (waiting for others) */}
             {gameState.phase === Phase.CHALLENGE_WINDOW &&
               gameState.pendingAction?.sourceId !== myPlayerId &&
-              myPlayer?.isAlive && (
+              myPlayer?.isAlive &&
+              !showWaitingAfterPass &&
+              !gameState.passedResponderIds?.includes(myPlayerId) && (
                 <div className="flex flex-wrap gap-2 items-center hidden sm:flex">
                   <div className="w-full text-sm font-bold text-slate-500">
                     {getName(gameState.pendingAction?.sourceId ?? '')} uses{' '}
@@ -1258,10 +1260,11 @@ function App() {
                 </div>
               )}
 
-            {/* Action: Respond to Block — anyone except blocker can challenge; only actor can pass — desktop */}
+            {/* Action: Respond to Block — anyone except blocker can challenge or pass; hide when already passed — desktop */}
             {gameState.phase === Phase.BLOCK_RESPONSE &&
               gameState.pendingAction?.blockedBy !== myPlayerId &&
-              myPlayer?.isAlive && (
+              myPlayer?.isAlive &&
+              !gameState.passedResponderIds?.includes(myPlayerId) && (
                 <div className="space-y-2 hidden sm:block">
                   <p className="text-slate-600 text-sm text-center">
                     {gameState.pendingAction?.sourceId === myPlayerId
@@ -1284,23 +1287,21 @@ function App() {
                     >
                       {t.actions[ActionType.CHALLENGE]} {gameState.pendingAction?.sourceId === myPlayerId ? `(${t.prompt.claimTheyLie})` : ''}
                     </Button>
-                    {gameState.pendingAction?.sourceId === myPlayerId && (
-                      <Button
-                        variant="secondary"
-                        fullWidth
-                        onClick={() => {
-                          const newState = GameEngine.applyAction(gameState, {
-                            type: 'PASS',
-                            payload: { playerId: myPlayerId },
-                          });
-                          setGameState(newState);
-                          const roomCode = sessionStorage.getItem('roomCode');
-                          if (roomCode) emitGameState(roomCode, newState as unknown as Record<string, unknown>);
-                        }}
-                      >
-                        {t.actions[ActionType.PASS]} ({t.prompt.acceptBlock})
-                      </Button>
-                    )}
+                    <Button
+                      variant="secondary"
+                      fullWidth
+                      onClick={() => {
+                        const newState = GameEngine.applyAction(gameState, {
+                          type: 'PASS',
+                          payload: { playerId: myPlayerId },
+                        });
+                        setGameState(newState);
+                        const roomCode = sessionStorage.getItem('roomCode');
+                        if (roomCode) emitGameState(roomCode, newState as unknown as Record<string, unknown>);
+                      }}
+                    >
+                      {gameState.pendingAction?.sourceId === myPlayerId ? t.actions[ActionType.PASS] + ' (' + t.prompt.acceptBlock + ')' : t.actions[ActionType.PASS]}
+                    </Button>
                   </div>
                 </div>
               )}
@@ -1373,7 +1374,7 @@ function App() {
           </BottomSheet>
         )}
 
-        {isMobile && gameState.phase === Phase.CHALLENGE_WINDOW && gameState.pendingAction?.sourceId !== myPlayerId && myPlayer?.isAlive && (
+        {isMobile && gameState.phase === Phase.CHALLENGE_WINDOW && gameState.pendingAction?.sourceId !== myPlayerId && myPlayer?.isAlive && !showWaitingAfterPass && !gameState.passedResponderIds?.includes(myPlayerId) && (
           <BottomSheet open title={t.prompt.respond} urgency={t.prompt.respond}>
             <div className="space-y-4">
               <p className="text-slate-700 font-medium">
@@ -1475,7 +1476,7 @@ function App() {
           </BottomSheet>
         )}
 
-        {isMobile && gameState.phase === Phase.BLOCK_RESPONSE && gameState.pendingAction?.blockedBy !== myPlayerId && myPlayer?.isAlive && (
+        {isMobile && gameState.phase === Phase.BLOCK_RESPONSE && gameState.pendingAction?.blockedBy !== myPlayerId && myPlayer?.isAlive && !gameState.passedResponderIds?.includes(myPlayerId) && (
           <BottomSheet open title={t.prompt.respond} urgency={t.prompt.respond}>
             <p className="text-slate-700 font-medium mb-4">
               {gameState.pendingAction?.sourceId === myPlayerId
@@ -1496,21 +1497,19 @@ function App() {
               >
                 {t.prompt.claimTheyLie}
               </Button>
-              {gameState.pendingAction?.sourceId === myPlayerId && (
-                <Button
-                  variant="secondary"
-                  fullWidth
-                  className="min-h-[48px]"
-                  onClick={() => {
-                    const newState = GameEngine.applyAction(gameState, { type: 'PASS', payload: { playerId: myPlayerId } });
-                    setGameState(newState);
-                    const roomCode = sessionStorage.getItem('roomCode');
-                    if (roomCode) emitGameState(roomCode, newState as unknown as Record<string, unknown>);
-                  }}
-                >
-                  {t.prompt.acceptBlock}
-                </Button>
-              )}
+              <Button
+                variant="secondary"
+                fullWidth
+                className="min-h-[48px]"
+                onClick={() => {
+                  const newState = GameEngine.applyAction(gameState, { type: 'PASS', payload: { playerId: myPlayerId } });
+                  setGameState(newState);
+                  const roomCode = sessionStorage.getItem('roomCode');
+                  if (roomCode) emitGameState(roomCode, newState as unknown as Record<string, unknown>);
+                }}
+              >
+                {gameState.pendingAction?.sourceId === myPlayerId ? t.prompt.acceptBlock : t.actions[ActionType.PASS]}
+              </Button>
             </div>
           </BottomSheet>
         )}

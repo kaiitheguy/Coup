@@ -302,13 +302,24 @@ export const applyAction = (
         }
       }
 
-      if (state.phase === Phase.BLOCK_RESPONSE && state.pendingAction) {
+      if (state.phase === Phase.BLOCK_RESPONSE && state.pendingAction?.blockedBy) {
         const pa = state.pendingAction;
-        if (passerId !== pa.sourceId) return state;
-        const actor = state.players.find((p) => p.id === pa.sourceId);
-        if (!actor || !isAlive(actor)) return state;
+        const blockResponders = state.players.filter((p) => isAlive(p) && p.id !== pa.blockedBy).map((p) => p.id);
+        if (blockResponders.length === 0) return state;
+        if (!passerId) return state;
+        const passer = state.players.find((p) => p.id === passerId);
+        if (!passer || !isAlive(passer)) return state;
+        if (passerId === pa.blockedBy) return state; // blocker cannot pass on their own block
+        if (!blockResponders.includes(passerId)) return state;
+        const passedResponderIds = state.passedResponderIds ?? [];
+        if (passedResponderIds.includes(passerId)) return state;
+        const newPassed = [...passedResponderIds, passerId];
+        if (newPassed.length < blockResponders.length) {
+          return { ...state, passedResponderIds: newPassed };
+        }
         return nextTurn({
           ...state,
+          passedResponderIds: undefined,
           pendingAction: null,
           logs: [...state.logs, { type: 'block_accepted' }],
         });
@@ -329,6 +340,7 @@ export const applyAction = (
           ...state,
           phase: Phase.BLOCK_RESPONSE,
           pendingAction: { ...pa, blockedBy: blockerId, blockedByRole: Role.DUKE },
+          passedResponderIds: [],
           logs: [...state.logs, { type: 'block', blockerId, role: Role.DUKE }],
         };
       }
@@ -337,6 +349,7 @@ export const applyAction = (
           ...state,
           phase: Phase.BLOCK_RESPONSE,
           pendingAction: { ...pa, blockedBy: blockerId, blockedByRole: Role.CONTESSA },
+          passedResponderIds: [],
           logs: [...state.logs, { type: 'block', blockerId, role: Role.CONTESSA }],
         };
       }
@@ -345,6 +358,7 @@ export const applyAction = (
           ...state,
           phase: Phase.BLOCK_RESPONSE,
           pendingAction: { ...pa, blockedBy: blockerId, blockedByRole: blockRole },
+          passedResponderIds: [],
           logs: [...state.logs, { type: 'block', blockerId, role: blockRole }],
         };
       }
@@ -368,13 +382,17 @@ export const applyAction = (
           const hasDuke = actor.cards.includes(Role.DUKE);
           if (hasDuke) {
             const afterReplace = replaceCard(state, pa.sourceId, Role.DUKE);
+            const updatedPlayers = afterReplace.players.map((p) =>
+              p.id === pa.sourceId ? { ...p, coins: p.coins + 3 } : p
+            );
             return {
               ...afterReplace,
+              players: updatedPlayers,
               phase: Phase.LOSE_CARD,
               victimId: challengerId,
               pendingAction: null,
               passedResponderIds: undefined,
-              logs: [...afterReplace.logs, startedLog, { type: 'challenge_fail', challengerId, challengedId, claimedRole, loserId: challengerId }],
+              logs: [...afterReplace.logs, startedLog, { type: 'challenge_fail', challengerId, challengedId, claimedRole, loserId: challengerId }, { type: 'tax_success', actorId: pa.sourceId }],
             };
           }
           return {

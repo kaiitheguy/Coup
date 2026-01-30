@@ -36,6 +36,7 @@ function App() {
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
   const [cardLostToast, setCardLostToast] = useState(false);
   const [showCheatSheet, setShowCheatSheet] = useState(false);
+  const [showWaitingAfterPass, setShowWaitingAfterPass] = useState(false);
   const cheatSheetRef = useRef<HTMLDivElement>(null);
   const cheatSheetRefDesktop = useRef<HTMLDivElement>(null);
 
@@ -59,6 +60,10 @@ function App() {
       setSelectedTargetId(null);
     }
   }, [gameState?.phase, gameState?.turnIndex, gameState?.players, myPlayerId, gameState]);
+
+  useEffect(() => {
+    if (gameState?.phase !== Phase.CHALLENGE_WINDOW) setShowWaitingAfterPass(false);
+  }, [gameState?.phase]);
 
   // Clear exchange selection when we first enter EXCHANGE_SELECT (e.g. after others pass) so indices aren't stale
   const prevPhaseRef = useRef<Phase | null>(null);
@@ -698,7 +703,7 @@ function App() {
               )}
               <div className="text-sm text-slate-500 mt-3">
                 {gameState.phase === Phase.ACTION_SELECTION && t.status.waiting}
-                {gameState.phase === Phase.CHALLENGE_WINDOW && (myPlayer?.isAlive ? t.status.challenging : t.status.waitingForOthers)}
+                {gameState.phase === Phase.CHALLENGE_WINDOW && (showWaitingAfterPass || !myPlayer?.isAlive ? t.status.waitingForOthers : t.status.challenging)}
                 {gameState.phase === Phase.BLOCK_RESPONSE && (myPlayer?.isAlive ? (gameState.pendingAction?.sourceId === myPlayerId ? t.status.blocking : t.status.waitingForOthers) : t.status.waitingForOthers)}
                 {gameState.phase === Phase.LOSE_CARD && (gameState.victimId === myPlayerId ? t.game.loseCard : `Waiting for ${getName(gameState.victimId ?? '')} to choose a card.`)}
                 {gameState.phase === Phase.EXCHANGE_SELECT && (gameState.exchangePlayerId === myPlayerId ? t.status.exchangeSelect : `Waiting for ${getName(gameState.exchangePlayerId ?? '')} to choose 2 cards.`)}
@@ -1243,6 +1248,7 @@ function App() {
                         payload: { playerId: myPlayerId },
                       });
                       setGameState(newState);
+                      setShowWaitingAfterPass(true);
                       const roomCode = sessionStorage.getItem('roomCode');
                       if (roomCode) emitGameState(roomCode, newState as unknown as Record<string, unknown>);
                     }}
@@ -1457,6 +1463,7 @@ function App() {
                   onClick={() => {
                     const newState = GameEngine.applyAction(gameState, { type: 'PASS', payload: { playerId: myPlayerId } });
                     setGameState(newState);
+                    setShowWaitingAfterPass(true);
                     const roomCode = sessionStorage.getItem('roomCode');
                     if (roomCode) emitGameState(roomCode, newState as unknown as Record<string, unknown>);
                   }}

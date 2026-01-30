@@ -522,15 +522,18 @@ export const applyAction = (
             return p;
           });
         }
-        // ASSASSINATE: blocker loses 1 now; target must lose 1 next (deferred) — never fall through
+        // ASSASSINATE: blocker loses 1 now; target must lose 1 next (deferred) — only if they'll still have a card to lose
         if (pa.type === ActionType.ASSASSINATE) {
           const assassinateTargetId = pa.targetId ?? pa.blockedBy!;
+          const blocker = state.players.find((p) => p.id === pa.blockedBy)!;
+          const isSamePerson = pa.blockedBy === assassinateTargetId;
+          const willHaveCardAfterFirstLoss = isSamePerson ? blocker.cards.length > 1 : true;
           return {
             ...state,
             players: updatedPlayers,
             phase: Phase.LOSE_CARD,
             victimId: pa.blockedBy!,
-            deferredLoseCardVictimId: assassinateTargetId,
+            deferredLoseCardVictimId: willHaveCardAfterFirstLoss ? assassinateTargetId : null,
             pendingAction: null,
             logs: [...state.logs, startedLog, { type: 'challenge_success', challengerId, challengedId, claimedRole }],
           };
@@ -590,12 +593,15 @@ export const applyAction = (
       const finalState = checkWinCondition(newState);
       if (finalState.phase === Phase.GAME_OVER) return finalState;
 
-      // Deferred lose card: blocker lost 1 for lying; now target loses 1 (e.g. assassinate) — chain LOSE_CARD
+      // Deferred lose card: blocker lost 1 for lying; now target loses 1 (e.g. assassinate) — chain LOSE_CARD only if they have a card to lose
       if (finalState.deferredLoseCardVictimId) {
         const nextVictimId = finalState.deferredLoseCardVictimId;
         const nextVictim = finalState.players.find((p) => p.id === nextVictimId);
         if (!nextVictim || nextVictim.cards.length === 0) {
-          return nextTurn({ ...finalState, deferredLoseCardVictimId: null });
+          const cleared = { ...finalState, deferredLoseCardVictimId: null };
+          const afterWinCheck = checkWinCondition(cleared);
+          if (afterWinCheck.phase === Phase.GAME_OVER) return afterWinCheck;
+          return nextTurn(cleared);
         }
         return {
           ...finalState,
